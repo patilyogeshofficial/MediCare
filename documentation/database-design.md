@@ -303,3 +303,15 @@ Planned database enhancements:
 MediCare – The Healthcare Administration Console
 
 Developed by Yogesh Patil.
+
+## Automatic Timestamp Management
+
+The appointments table uses a PostgreSQL trigger to automatically
+update the `updated_at` column whenever an appointment record changes.
+
+- Function: `update_appointment_timestamp()`
+- Trigger: `trg_update_appointment_timestamp`
+- Event: BEFORE UPDATE
+- Table: appointments
+
+The `created_at` column remains unchanged during updates.
