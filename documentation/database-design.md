@@ -315,3 +315,47 @@ update the `updated_at` column whenever an appointment record changes.
 - Table: appointments
 
 The `created_at` column remains unchanged during updates.
+
+Prescription Module – Backend Implementation
+
+Business Rules
+
+1. A prescription can only be created for a COMPLETED appointment.
+2. Each appointment can have only one prescription.
+3. Medication details must be stored as a valid JSON array.
+4. The appointment ID cannot be changed when updating a prescription.
+5. Prescriptions are associated with appointments through a foreign key.
+6. An appointment cannot be deleted while an associated prescription exists.
+
+Prescription REST API Endpoints
+
+HTTP Method	Endpoint	Description
+GET	/api/prescriptions	Retrieve all prescriptions
+GET	/api/prescriptions/{id}	Retrieve prescription by ID
+GET	/api/prescriptions/appointment/{appointmentId}	Retrieve prescription by appointment
+POST	/api/prescriptions	Create a prescription
+PUT	/api/prescriptions/{id}	Update prescription details
+DELETE	/api/prescriptions/{id}	Delete a prescription
+
+Backend Technologies
+
+* Java 21
+* Spring Boot
+* Spring Data JPA
+* Hibernate ORM
+* PostgreSQL JSONB
+* Jakarta Bean Validation
+* Jackson 3
+
+API Testing Results
+
+Test Case	Expected Status	Result
+Retrieve all prescriptions	200 OK	PASS
+Retrieve prescription by ID	200 OK	PASS
+Retrieve by appointment ID	200 OK	PASS
+Create prescription	201 Created	PASS
+Update prescription	200 OK	PASS
+Delete prescription	204 No Content	PASS
+Retrieve deleted prescription	404 Not Found	PASS
+
+Module Status: Completed and Tested
