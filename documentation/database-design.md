@@ -359,3 +359,34 @@ Delete prescription	204 No Content	PASS
 Retrieve deleted prescription	404 Not Found	PASS
 
 Module Status: Completed and Tested
+
+
+Contact Message Module – Backend Implementation
+
+Business Rules
+
+1. Name, email and message are mandatory.
+2. Email must have a valid format.
+3. Subject is optional.
+4. Messages are stored in the contact_messages table.
+5. Each message receives an automatically generated ID and timestamp.
+6. Contact messages can be retrieved and deleted by their ID.
+
+REST API Endpoints
+
+HTTP Method	Endpoint	Description
+GET	/api/contact-messages	Retrieve all contact messages
+GET	/api/contact-messages/{id}	Retrieve message by ID
+POST	/api/contact-messages	Submit a contact message
+DELETE	/api/contact-messages/{id}	Delete a contact message
+
+API Testing Results
+
+Test Case	Expected Status	Result
+Create contact message	201 Created	PASS
+Retrieve all messages	200 OK	PASS
+Retrieve message by ID	200 OK	PASS
+Delete contact message	204 No Content	PASS
+Retrieve deleted message	404 Not Found	PASS
+
+Module Status: Completed and Tested
