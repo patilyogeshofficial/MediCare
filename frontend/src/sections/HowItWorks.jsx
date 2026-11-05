@@ -39,42 +39,55 @@ function HowItWorks() {
   ];
 
   return (
-    <section id="how-it-works" className="py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-blue-600 font-semibold uppercase tracking-wider text-sm">
+    <section
+      id="how-it-works"
+      className="bg-slate-50 py-20 lg:py-28"
+    >
+      <div className="mx-auto max-w-7xl px-6">
+
+        {/* SECTION HEADING */}
+        <div className="mx-auto mb-16 max-w-3xl text-center">
+          <span className="text-sm font-semibold uppercase tracking-wider text-cyan-600">
             Simple Process
           </span>
 
-          <h2 className="text-4xl font-bold text-gray-900 mt-3 mb-5">
+          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
             How MediCare Works
           </h2>
 
-          <p className="text-gray-600 leading-relaxed">
+          <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-600">
             Getting quality healthcare should be simple. Follow these four
             easy steps to begin your healthcare journey with MediCare.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {/* STEPS GRID */}
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((step) => {
             const Icon = step.icon;
 
             return (
-              <div key={step.number} className="relative text-center group">
-                <div className="w-20 h-20 mx-auto mb-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                  <Icon size={34} />
+              <div
+                key={step.number}
+                className="group relative text-center transition-transform duration-300 hover:-translate-y-2 motion-reduce:transform-none motion-reduce:transition-none"
+              >
+                {/* STEP ICON */}
+                <div className="mx-auto mb-7 flex h-20 w-20 items-center justify-center rounded-full bg-cyan-100 text-cyan-700 transition-all duration-300 group-hover:bg-cyan-600 group-hover:text-white motion-reduce:transition-none">
+                  <Icon size={34} aria-hidden="true" />
                 </div>
 
-                <span className="text-sm font-bold text-blue-600">
+                {/* STEP NUMBER */}
+                <span className="text-sm font-bold tracking-wider text-cyan-700">
                   STEP {step.number}
                 </span>
 
-                <h3 className="text-xl font-bold text-gray-900 mt-3 mb-3">
+                {/* STEP TITLE */}
+                <h3 className="mt-3 text-xl font-bold text-slate-900">
                   {step.title}
                 </h3>
 
-                <p className="text-gray-600 text-sm leading-relaxed max-w-xs mx-auto">
+                {/* STEP DESCRIPTION */}
+                <p className="mx-auto mt-3 max-w-xs text-sm leading-7 text-slate-600">
                   {step.description}
                 </p>
               </div>
@@ -82,17 +95,20 @@ function HowItWorks() {
           })}
         </div>
 
+        {/* BOTTOM CTA */}
         <div className="mt-16 text-center">
           <button
+            type="button"
             onClick={() =>
               window.scrollTo({ top: 0, behavior: "smooth" })
             }
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-blue-100"
+            className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-8 py-4 font-bold text-white shadow-lg shadow-cyan-100 transition duration-300 hover:-translate-y-1 hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700 motion-reduce:transform-none motion-reduce:transition-none"
           >
             Get Started
-            <ArrowRight size={18} />
+            <ArrowRight size={18} aria-hidden="true" />
           </button>
         </div>
+
       </div>
     </section>
   );

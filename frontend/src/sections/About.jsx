@@ -1,3 +1,4 @@
+import { HeartPulse, Check } from "lucide-react";
 function About() {
   const highlights = [
     "Patient-focused approach",
@@ -16,7 +17,7 @@ function About() {
             About MediCare
           </p>
 
-          <h2 className="text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">
+<h2 className="text-balance text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
             Your Health Deserves
             <span className="text-cyan-600"> The Best Care.</span>
           </h2>
@@ -58,22 +59,23 @@ function About() {
             </div>
           </div>
 
-          <a
-            href="#services"
-            className="mt-8 inline-flex items-center rounded-xl bg-cyan-600 px-6 py-4 font-bold text-white transition hover:bg-cyan-700"
-          >
-            Learn More About Us →
-          </a>
-        </div>
+         <a
+  href="#healthcare-services"
+  className="mt-8 inline-flex items-center justify-center rounded-xl bg-cyan-700 px-6 py-4 font-bold text-white transition hover:bg-cyan-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700"
+>
+  Learn More About Us →
+</a>
 
-        {/* RIGHT CONTENT */}
-        <div className="relative">
+</div> {/* LEFT CONTENT ends here */}
+
+{/* RIGHT CONTENT */}
+<div className="relative">
           <div className="rounded-3xl bg-gradient-to-br from-cyan-100 to-blue-100 p-8 sm:p-12">
             <div className="rounded-2xl bg-white p-8 shadow-xl">
 
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-600 text-3xl text-white">
-                ♥
-              </div>
+            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-600 text-white">
+  <HeartPulse size={32} />
+</div>
 
               <h3 className="text-2xl font-extrabold text-slate-900">
                 Healthcare With Care & Compassion
@@ -88,8 +90,10 @@ function About() {
                 {highlights.map((item) => (
                   <div key={item} className="flex items-center gap-3">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
-                      ✓
-                    </span>
+
+  <Check size={17} aria-hidden="true" />
+
+</span>
 
                     <span className="text-sm font-semibold text-slate-700">
                       {item}

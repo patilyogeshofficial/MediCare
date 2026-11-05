@@ -1,4 +1,4 @@
-
+import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Hero from "./sections/Hero";
@@ -17,29 +17,27 @@ import './App.css'
 function App() {
   return (
     <div className="min-h-screen bg-white text-slate-800">
-
       <Navbar />
+
+      <Toaster position="top-right" />
 
       <main>
         <Hero />
-
-        {/* ABOUT MEDICARE SECTION */}
-        <About /> 
+        <About />
         <Specialities />
         <Doctors />
         <HealthcareServices />
         <WhyChooseUs />
-       <MedicalTeam />
-<HowItWorks />
-<Testimonials />
-<FAQ />
-<Contact />
+        <MedicalTeam />
+        <HowItWorks />
+        <Testimonials />
+        <FAQ />
+        <Contact />
       </main>
 
       <Footer />
     </div>
   );
-
 }
 
 export default App;

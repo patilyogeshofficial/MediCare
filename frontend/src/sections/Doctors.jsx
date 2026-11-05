@@ -11,7 +11,7 @@ function Doctors() {
             Meet Our Specialists
           </p>
 
-          <h2 className="mt-4 text-3xl font-extrabold text-slate-900 sm:text-4xl">
+          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
             Meet Our Experienced Doctors
           </h2>
 
@@ -36,6 +36,7 @@ function Doctors() {
                   src={doctor.image}
                   alt={doctor.name}
                   loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover object-top transition duration-500 group-hover:scale-105"
                 />
               </div>
@@ -70,9 +71,10 @@ function Doctors() {
                   </p>
                 </div>
 
+                {/* BOOK APPOINTMENT */}
                 <a
-                  href="#appointment"
-                  className="mt-5 block rounded-xl bg-cyan-600 py-3 text-center text-sm font-bold text-white transition hover:bg-cyan-700"
+                  href="#contact"
+                  className="mt-5 block rounded-xl bg-cyan-600 py-3 text-center text-sm font-bold text-white transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
                 >
                   Book Appointment
                 </a>
@@ -86,8 +88,8 @@ function Doctors() {
         {/* BOTTOM CTA */}
         <div className="mt-12 text-center">
           <a
-            href="#appointment"
-            className="inline-flex items-center gap-2 rounded-xl border border-cyan-600 px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50"
+            href="#contact"
+            className="inline-flex items-center gap-2 rounded-xl border border-cyan-600 px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
           >
             View All Doctors →
           </a>

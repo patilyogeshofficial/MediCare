@@ -23,12 +23,12 @@ function Hero() {
             Your Health, Our Priority
           </div>
 
-          <h2 className="text-4xl font-extrabold leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
+<h1 className="text-4xl font-extrabold leading-tight text-slate-950 sm:text-5xl lg:text-6xl text-balance">
             Better Care Begins With{" "}
             <span className="text-cyan-600">
               A Healthier You.
             </span>
-          </h2>
+          </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
             Experience quality healthcare with trusted medical
@@ -77,7 +77,7 @@ function Hero() {
                   Welcome to MediCare
                 </p>
 
-                <h3 className="mt-3 text-3xl font-extrabold">
+<h3 className="mt-3 text-2xl font-extrabold sm:text-3xl">
                   Healthcare Made Simple.
                 </h3>
               </div>
@@ -91,7 +91,7 @@ function Hero() {
               through one convenient platform.
             </p>
 
-            <div className="mt-10 grid grid-cols-2 gap-4">
+<div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
 
               <div className="rounded-2xl bg-white/15 p-5">
                 <Stethoscope size={30} />

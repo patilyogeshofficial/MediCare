@@ -80,7 +80,7 @@ function Specialities() {
             Our Departments
           </p>
 
-          <h2 className="mt-4 text-3xl font-extrabold text-slate-900 sm:text-4xl">
+          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
             Explore Our Medical Specialities
           </h2>
 
@@ -103,7 +103,7 @@ function Specialities() {
                 <div
                   className={`flex h-14 w-14 items-center justify-center rounded-2xl ${speciality.color}`}
                 >
-                  <Icon size={28} />
+                  <Icon size={28} aria-hidden="true" />
                 </div>
 
                 <h3 className="mt-6 text-xl font-bold text-slate-900">
@@ -116,10 +116,10 @@ function Specialities() {
 
                 <a
                   href="#doctors"
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3"
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
                 >
                   Explore Department
-                  <ArrowRight size={16} />
+                  <ArrowRight size={16} aria-hidden="true" />
                 </a>
               </div>
             );
@@ -130,10 +130,10 @@ function Specialities() {
         <div className="mt-12 text-center">
           <a
             href="#doctors"
-            className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-7 py-4 font-bold text-white transition hover:bg-cyan-700"
+            className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-7 py-4 font-bold text-white transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
           >
             Explore All Specialities
-            <ArrowRight size={18} />
+            <ArrowRight size={18} aria-hidden="true" />
           </a>
         </div>
 

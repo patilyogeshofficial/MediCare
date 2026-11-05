@@ -56,12 +56,14 @@ function WhyChooseUs() {
   return (
     <section id="why-choose-us" className="bg-white py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6">
+
+        {/* SECTION HEADING */}
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <p className="font-bold uppercase tracking-widest text-cyan-600">
             Why Choose Us
           </p>
 
-          <h2 className="mt-4 text-3xl font-extrabold text-slate-900 sm:text-4xl">
+          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
             Why Patients Choose MediCare
           </h2>
 
@@ -72,6 +74,7 @@ function WhyChooseUs() {
           </p>
         </div>
 
+        {/* FEATURES GRID */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => {
             const Icon = feature.icon;
@@ -84,7 +87,7 @@ function WhyChooseUs() {
                 <div
                   className={`flex h-16 w-16 items-center justify-center rounded-2xl ${feature.color}`}
                 >
-                  <Icon size={30} />
+                  <Icon size={30} aria-hidden="true" />
                 </div>
 
                 <h3 className="mt-6 text-xl font-bold text-slate-900">
@@ -99,8 +102,9 @@ function WhyChooseUs() {
           })}
         </div>
 
+        {/* BOTTOM CTA */}
         <div className="mt-14 rounded-3xl bg-gradient-to-r from-cyan-600 to-blue-700 px-8 py-12 text-center text-white sm:px-14">
-          <h3 className="text-2xl font-extrabold sm:text-3xl">
+          <h3 className="text-balance text-2xl font-extrabold sm:text-3xl">
             Your Wellbeing Is Our Priority
           </h3>
 
@@ -111,11 +115,12 @@ function WhyChooseUs() {
 
           <a
             href="#doctors"
-            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50"
+            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
             Explore Our Doctors →
           </a>
         </div>
+
       </div>
     </section>
   );

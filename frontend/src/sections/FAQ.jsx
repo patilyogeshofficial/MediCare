@@ -35,41 +35,47 @@ function FAQ() {
   ];
 
   return (
-    <section id="faq" className="py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-blue-600 font-semibold uppercase tracking-wider text-sm">
+    <section id="faq" className="bg-slate-50 py-20 lg:py-28">
+      <div className="mx-auto max-w-7xl px-6">
+
+        {/* SECTION HEADING */}
+        <div className="mx-auto mb-16 max-w-3xl text-center">
+          <span className="text-sm font-semibold uppercase tracking-wider text-cyan-600">
             Got Questions?
           </span>
 
-          <h2 className="text-4xl font-bold text-gray-900 mt-3 mb-5">
+          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
             Frequently Asked Questions
           </h2>
 
-          <p className="text-gray-600 leading-relaxed">
+          <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-600">
             Find answers to common questions about MediCare, appointments,
             healthcare services and patient support.
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto space-y-4">
+        {/* FAQ ACCORDION */}
+        <div className="mx-auto max-w-4xl space-y-4">
           {faqs.map((faq, index) => (
             <details
-              key={index}
-              className="group bg-white rounded-xl border border-gray-200 hover:border-blue-200 transition-all duration-300"
+              key={faq.question}
+              className="group rounded-xl border border-slate-200 bg-white transition-all duration-300 hover:border-cyan-200 hover:shadow-sm motion-reduce:transition-none"
             >
-              <summary className="flex items-center justify-between gap-4 p-6 cursor-pointer list-none">
-                <h3 className="text-base md:text-lg font-semibold text-gray-900">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl p-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 [&::-webkit-details-marker]:hidden">
+                <h3 className="text-base font-semibold text-slate-900 md:text-lg">
                   {faq.question}
                 </h3>
 
-                <span className="text-blue-600 text-2xl font-light transition-transform duration-300 group-open:rotate-45">
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-2xl font-light text-cyan-600 transition-transform duration-300 group-open:rotate-45 motion-reduce:transition-none"
+                >
                   +
                 </span>
               </summary>
 
               <div className="px-6 pb-6">
-                <p className="text-gray-600 leading-relaxed border-t border-gray-100 pt-4">
+                <p className="border-t border-slate-100 pt-4 text-sm leading-7 text-slate-600">
                   {faq.answer}
                 </p>
               </div>
@@ -77,23 +83,25 @@ function FAQ() {
           ))}
         </div>
 
-        <div className="text-center mt-14">
-          <h3 className="text-xl font-bold text-gray-900 mb-3">
+        {/* BOTTOM CTA */}
+        <div className="mt-14 text-center">
+          <h3 className="text-balance text-xl font-bold text-slate-900">
             Still Have Questions?
           </h3>
 
-          <p className="text-gray-600 mb-6">
+          <p className="mt-3 text-slate-600">
             Our team is here to help you with your healthcare enquiries.
           </p>
 
           <a
             href="#contact"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-full font-semibold transition-all duration-300"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-cyan-600 px-8 py-4 font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700 motion-reduce:transform-none motion-reduce:transition-none"
           >
             Contact Us
-            <ArrowRight size={18} />
+            <ArrowRight size={18} aria-hidden="true" />
           </a>
         </div>
+
       </div>
     </section>
   );

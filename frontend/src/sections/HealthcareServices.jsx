@@ -15,7 +15,7 @@ function HealthcareServices() {
             What We Offer
           </p>
 
-          <h2 className="mt-4 text-3xl font-extrabold text-slate-900 sm:text-4xl">
+          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
             Comprehensive Healthcare Services
           </h2>
 
@@ -38,7 +38,7 @@ function HealthcareServices() {
                 <div
                   className={`flex h-14 w-14 items-center justify-center rounded-2xl ${service.color}`}
                 >
-                  <Icon size={28} />
+                  <Icon size={28} aria-hidden="true" />
                 </div>
 
                 <h3 className="mt-6 text-xl font-bold text-slate-900">
@@ -51,10 +51,10 @@ function HealthcareServices() {
 
                 <a
                   href="#contact"
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3"
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
                 >
                   Learn More
-                  <ArrowRight size={16} />
+                  <ArrowRight size={16} aria-hidden="true" />
                 </a>
               </div>
             );
@@ -63,7 +63,7 @@ function HealthcareServices() {
 
         {/* BOTTOM CTA */}
         <div className="mt-14 rounded-3xl bg-gradient-to-r from-cyan-600 to-blue-700 p-8 text-center text-white sm:p-12">
-          <h3 className="text-2xl font-extrabold sm:text-3xl">
+          <h3 className="text-balance text-2xl font-extrabold sm:text-3xl">
             Your Health Matters to Us
           </h3>
 
@@ -74,10 +74,10 @@ function HealthcareServices() {
 
           <a
             href="#doctors"
-            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50"
+            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
             Find a Doctor
-            <ArrowRight size={18} />
+            <ArrowRight size={18} aria-hidden="true" />
           </a>
         </div>
 

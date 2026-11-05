@@ -29,49 +29,74 @@ function Testimonials() {
   ];
 
   return (
-    <section id="testimonials" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-blue-600 font-semibold uppercase tracking-wider text-sm">
+    <section id="testimonials" className="bg-white py-20 lg:py-28">
+      <div className="mx-auto max-w-7xl px-6">
+
+        {/* SECTION HEADING */}
+        <div className="mx-auto mb-16 max-w-3xl text-center">
+          <span className="text-sm font-semibold uppercase tracking-wider text-cyan-600">
             Patient Experiences
           </span>
 
-          <h2 className="text-4xl font-bold text-gray-900 mt-3 mb-5">
+          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
             What Our Patients Say
           </h2>
 
-          <p className="text-gray-600 leading-relaxed">
+          <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-600">
             Quality healthcare is built on trust, compassion and positive
             experiences. Discover what matters most in patient care.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* TESTIMONIALS GRID */}
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {reviews.map((review) => (
             <div
               key={review.initials}
-              className="p-8 rounded-2xl bg-gray-50 border border-gray-100 hover:bg-white hover:shadow-xl hover:border-blue-100 transition-all duration-300"
+              className="group rounded-2xl border border-slate-100 bg-slate-50 p-8 transition-all duration-300 hover:-translate-y-2 hover:border-cyan-200 hover:bg-white hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none"
             >
-              <Quote size={34} className="text-blue-200 mb-6" />
+              {/* QUOTE ICON */}
+              <Quote
+                size={34}
+                aria-hidden="true"
+                className="mb-6 text-cyan-200"
+              />
 
-              <div className="flex gap-1 mb-5 text-amber-400">
+              {/* STAR RATINGS */}
+              <div
+                className="mb-5 flex gap-1 text-amber-400"
+                aria-label="Illustrative five-star rating"
+              >
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={17} fill="currentColor" />
+                  <Star
+                    key={star}
+                    size={17}
+                    fill="currentColor"
+                    aria-hidden="true"
+                  />
                 ))}
               </div>
 
-              <p className="text-gray-600 leading-relaxed mb-8">
+              {/* PATIENT FEEDBACK */}
+              <p className="mb-8 text-sm leading-7 text-slate-600">
                 "{review.feedback}"
               </p>
 
-              <div className="flex items-center gap-4 border-t border-gray-200 pt-6">
-                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center">
+              {/* PATIENT DETAILS */}
+              <div className="flex items-center gap-4 border-t border-slate-200 pt-6">
+                <div
+                  aria-hidden="true"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 font-bold text-cyan-700"
+                >
                   {review.initials}
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-gray-900">{review.name}</h3>
-                  <p className="text-sm text-gray-500">
+                  <h3 className="font-bold text-slate-900">
+                    {review.name}
+                  </h3>
+
+                  <p className="text-sm text-slate-500">
                     {review.age} years old • {review.role}
                   </p>
                 </div>
@@ -80,9 +105,11 @@ function Testimonials() {
           ))}
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-8">
+        {/* DISCLAIMER */}
+        <p className="mt-8 text-center text-xs text-slate-400">
           Illustrative testimonials for the MediCare demo homepage.
         </p>
+
       </div>
     </section>
   );

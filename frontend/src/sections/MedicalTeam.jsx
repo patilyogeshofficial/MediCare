@@ -54,48 +54,54 @@ function MedicalTeam() {
   ];
 
   return (
-    <section id="medical-team" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-blue-600 font-semibold uppercase tracking-wider text-sm">
+    <section id="medical-team" className="bg-white py-20 lg:py-28">
+      <div className="mx-auto max-w-7xl px-6">
+
+        {/* SECTION HEADING */}
+        <div className="mx-auto mb-14 max-w-3xl text-center">
+          <span className="text-sm font-semibold uppercase tracking-wider text-cyan-600">
             Our People
           </span>
 
-          <h2 className="text-4xl font-bold text-gray-900 mt-3 mb-5">
+          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
             Meet Our Medical Team
           </h2>
 
-          <p className="text-gray-600 leading-relaxed">
+          <p className="mx-auto mt-5 max-w-2xl text-pretty leading-7 text-slate-600">
             Behind every successful healthcare experience is a dedicated team.
             Our professionals work together to deliver compassionate and
             reliable healthcare services.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* MEDICAL TEAM GRID */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {members.map((member) => {
             const Icon = member.icon;
 
             return (
               <div
                 key={member.number}
-                className="group p-8 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-white hover:border-blue-200 hover:shadow-xl transition-all duration-300"
+                className="group rounded-2xl border border-slate-100 bg-slate-50 p-8 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200 hover:bg-white hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none"
               >
-                <div className="flex items-center justify-between mb-7">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                    <Icon size={30} />
+                <div className="mb-7 flex items-center justify-between">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700 transition-all duration-300 group-hover:bg-cyan-600 group-hover:text-white motion-reduce:transition-none">
+                    <Icon size={30} aria-hidden="true" />
                   </div>
 
-                  <span className="text-4xl font-bold text-gray-200">
+                  <span
+                    aria-hidden="true"
+                    className="text-4xl font-bold text-slate-200"
+                  >
                     {member.number}
                   </span>
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                <h3 className="mb-3 text-xl font-bold text-slate-900">
                   {member.title}
                 </h3>
 
-                <p className="text-gray-600 leading-relaxed text-sm">
+                <p className="text-pretty text-sm leading-relaxed text-slate-600">
                   {member.description}
                 </p>
               </div>
@@ -103,11 +109,13 @@ function MedicalTeam() {
           })}
         </div>
 
+        {/* BOTTOM MESSAGE */}
         <div className="mt-14 text-center">
-          <p className="text-gray-600">
+          <p className="text-balance font-medium text-slate-600">
             One Team. One Mission. Better Healthcare for Everyone.
           </p>
         </div>
+
       </div>
     </section>
   );
