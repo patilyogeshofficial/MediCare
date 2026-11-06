@@ -25,15 +25,15 @@ public class UserService {
                 .toList();
     }
 
-    private UserResponseDTO convertToDTO(User user) {
+private UserResponseDTO convertToDTO(User user) {
 
-        return new UserResponseDTO(
-                user.getUserId(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getRole(),
-                user.getIsActive(),
-                user.getCreatedAt()
-        );
-    }
+    return new UserResponseDTO(
+            user.getUserId(),
+            user.getFullName(),
+            user.getEmail(),
+            user.getRole().name(),
+            user.getIsActive(),
+            user.getCreatedAt()
+    );
+}
 }
