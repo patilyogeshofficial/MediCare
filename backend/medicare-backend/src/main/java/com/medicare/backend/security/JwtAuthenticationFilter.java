@@ -65,10 +65,6 @@ protected void doFilterInternal(
                     userDetailsService.loadUserByUsername(userEmail);
 
             boolean valid = jwtService.isTokenValid(jwt, userDetails);
-
-           
-
-
             if (valid) {
 
                 UsernamePasswordAuthenticationToken authentication =
