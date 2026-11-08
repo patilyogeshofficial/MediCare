@@ -1,8 +1,30 @@
+
 import { HeartPulse } from "lucide-react";
 
 function Footer() {
   const linkClass =
     "transition-colors duration-200 hover:text-cyan-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400 rounded-sm";
+
+  const handleScroll = (event, targetId) => {
+    event.preventDefault();
+
+    const target = document.getElementById(targetId);
+
+    if (target) {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      window.history.replaceState(null, "", `#${targetId}`);
+    }
+  };
+
+  const sectionLink = (targetId) => ({
+    href: `#${targetId}`,
+    onClick: (event) => handleScroll(event, targetId),
+    className: linkClass,
+  });
 
   return (
     <footer className="bg-slate-950 text-slate-300">
@@ -15,6 +37,7 @@ function Footer() {
           <div>
             <a
               href="#home"
+              onClick={(event) => handleScroll(event, "home")}
               aria-label="MediCare - Back to Home"
               className="mb-6 inline-flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400"
             >
@@ -49,12 +72,12 @@ function Footer() {
             </h3>
 
             <ul className="space-y-4 text-sm">
-              <li><a href="#home" className={linkClass}>Home</a></li>
-              <li><a href="#about" className={linkClass}>About Us</a></li>
-              <li><a href="#services" className={linkClass}>Specialities</a></li>
-              <li><a href="#doctors" className={linkClass}>Our Doctors</a></li>
-              <li><a href="#medical-team" className={linkClass}>Medical Team</a></li>
-              <li><a href="#contact" className={linkClass}>Contact Us</a></li>
+              <li><a {...sectionLink("home")}>Home</a></li>
+              <li><a {...sectionLink("about")}>About Us</a></li>
+              <li><a {...sectionLink("services")}>Specialities</a></li>
+              <li><a {...sectionLink("doctors")}>Our Doctors</a></li>
+              <li><a {...sectionLink("medical-team")}>Medical Team</a></li>
+              <li><a {...sectionLink("contact")}>Contact Us</a></li>
             </ul>
           </div>
 
@@ -65,12 +88,24 @@ function Footer() {
             </h3>
 
             <ul className="space-y-4 text-sm">
-              <li><a href="#healthcare-services" className={linkClass}>OPD Services</a></li>
-              <li><a href="#healthcare-services" className={linkClass}>Emergency Care</a></li>
-              <li><a href="#healthcare-services" className={linkClass}>Nursing Services</a></li>
-              <li><a href="#healthcare-services" className={linkClass}>Pharmacy</a></li>
-              <li><a href="#healthcare-services" className={linkClass}>Laboratory</a></li>
-              <li><a href="#healthcare-services" className={linkClass}>Health Checkups</a></li>
+              <li>
+                <a {...sectionLink("healthcare-services")}>OPD Services</a>
+              </li>
+              <li>
+                <a {...sectionLink("healthcare-services")}>Emergency Care</a>
+              </li>
+              <li>
+                <a {...sectionLink("healthcare-services")}>Nursing Services</a>
+              </li>
+              <li>
+                <a {...sectionLink("healthcare-services")}>Pharmacy</a>
+              </li>
+              <li>
+                <a {...sectionLink("healthcare-services")}>Laboratory</a>
+              </li>
+              <li>
+                <a {...sectionLink("healthcare-services")}>Health Checkups</a>
+              </li>
             </ul>
           </div>
 
@@ -83,14 +118,22 @@ function Footer() {
             <div className="space-y-5 text-sm">
               <div>
                 <p className="mb-1 text-slate-500">Email</p>
-                <p className="break-all text-slate-300">
+                <a
+                  href="mailto:contact@medicare.com"
+                  className={`${linkClass} break-all text-slate-300`}
+                >
                   contact@medicare.com
-                </p>
+                </a>
               </div>
 
               <div>
                 <p className="mb-1 text-slate-500">Phone</p>
-                <p className="text-slate-300">+91 XXXXX XXXXX</p>
+                <a
+                  href="tel:+918010729955"
+                  className={`${linkClass} text-slate-300`}
+                >
+                  +91 8010729955
+                </a>
               </div>
 
               <div>
@@ -112,17 +155,9 @@ function Footer() {
 
           <nav aria-label="Footer navigation">
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
-              <a href="#faq" className={linkClass}>
-                FAQs
-              </a>
-
-              <a href="#contact" className={linkClass}>
-                Support
-              </a>
-
-              <a href="#home" className={linkClass}>
-                Back to Top ↑
-              </a>
+              <a {...sectionLink("faq")}>FAQs</a>
+              <a {...sectionLink("contact")}>Support</a>
+              <a {...sectionLink("home")}>Back to Top ↑</a>
             </div>
           </nav>
 

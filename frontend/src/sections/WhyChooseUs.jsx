@@ -1,3 +1,4 @@
+
 import {
   Award,
   HeartHandshake,
@@ -5,6 +6,7 @@ import {
   CalendarCheck2,
   HandHeart,
   Users,
+  ArrowRight,
 } from "lucide-react";
 
 function WhyChooseUs() {
@@ -53,8 +55,26 @@ function WhyChooseUs() {
     },
   ];
 
+  const handleExploreDoctors = (event) => {
+    event.preventDefault();
+
+    const doctorsSection = document.getElementById("doctors");
+
+    if (doctorsSection) {
+      doctorsSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      window.history.replaceState(null, "", "#doctors");
+    }
+  };
+
   return (
-    <section id="why-choose-us" className="bg-white py-20 lg:py-28">
+    <section
+      id="why-choose-us"
+      className="scroll-mt-20 bg-white py-20 lg:py-28"
+    >
       <div className="mx-auto max-w-7xl px-6">
 
         {/* SECTION HEADING */}
@@ -115,9 +135,11 @@ function WhyChooseUs() {
 
           <a
             href="#doctors"
+            onClick={handleExploreDoctors}
             className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
-            Explore Our Doctors →
+            Explore Our Doctors
+            <ArrowRight size={18} aria-hidden="true" />
           </a>
         </div>
 

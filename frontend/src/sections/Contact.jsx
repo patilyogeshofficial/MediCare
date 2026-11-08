@@ -1,19 +1,43 @@
+
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
 import toast from "react-hot-toast";
+import api from "../services/api";
 
 function Contact() {
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    toast.success(
-      "Contact form UI is ready! Backend integration is coming soon."
-    );
+  const form = e.currentTarget;
+  const formData = new FormData(form);
 
-    e.target.reset();
+  const contactData = {
+    name: formData.get("name").trim(),
+    email: formData.get("email").trim(),
+    phone: formData.get("phone").trim(),
+    subject: formData.get("subject").trim(),
+    message: formData.get("message").trim(),
   };
 
+  try {
+    await api.post("/contact-messages", contactData);
+
+    toast.success("Your message has been sent successfully!");
+    form.reset();
+  } catch (error) {
+    console.error("Contact form submission error:", error);
+
+    toast.error(
+      error.response?.data?.message ||
+      "Unable to send your message. Please try again."
+    );
+  }
+};
+
   return (
-    <section id="contact" className="bg-white py-20 lg:py-28">
+    <section
+      id="contact"
+      className="scroll-mt-20 bg-white py-20 lg:py-28"
+    >
       <div className="mx-auto max-w-7xl px-6">
 
         {/* SECTION HEADING */}
@@ -61,7 +85,7 @@ function Contact() {
                   </h4>
 
                   <p className="text-sm leading-6 text-cyan-50">
-                    Hospital Address, City, State, India
+                    Deccan, Pune, Maharashtra, India
                   </p>
                 </div>
               </div>
@@ -77,9 +101,12 @@ function Contact() {
                     Phone Number
                   </h4>
 
-                  <p className="text-sm text-cyan-50">
-                    +91 XXXXX XXXXX
-                  </p>
+                  <a
+                    href="tel:+918010729955"
+                    className="text-sm text-cyan-50 transition hover:text-white hover:underline"
+                  >
+                    +91 8010729955
+                  </a>
                 </div>
               </div>
 
@@ -94,9 +121,12 @@ function Contact() {
                     Email Address
                   </h4>
 
-                  <p className="break-all text-sm text-cyan-50">
+                  <a
+                    href="mailto:contact@medicare.com"
+                    className="break-all text-sm text-cyan-50 transition hover:text-white hover:underline"
+                  >
                     contact@medicare.com
-                  </p>
+                  </a>
                 </div>
               </div>
 
@@ -132,7 +162,7 @@ function Contact() {
             </h3>
 
             <p className="mb-8 mt-3 text-sm leading-6 text-slate-600">
-              Fill out the form below and our team will get back to you.
+              Fill out the form below with your enquiry details.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -149,14 +179,13 @@ function Contact() {
                   </label>
 
                   <input
-                    id="contact-name"
-                    name="name"
-                    type="text"
-                    placeholder="Enter your full name"
-                    autoComplete="name"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
-                  />
+  type="text"
+  name="name"
+  minLength={3}
+  maxLength={50}
+  pattern="[A-Za-z ]{3,50}"
+  required
+/>
                 </div>
 
                 <div>
@@ -167,15 +196,12 @@ function Contact() {
                     Email Address
                   </label>
 
-                  <input
-                    id="contact-email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    autoComplete="email"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
-                  />
+                 <input
+  type="email"
+  name="email"
+  maxLength={100}
+  required
+/>
                 </div>
 
               </div>
@@ -192,13 +218,14 @@ function Contact() {
                   </label>
 
                   <input
-                    id="contact-phone"
-                    name="phone"
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    autoComplete="tel"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
-                  />
+  type="tel"
+  name="phone"
+  minLength={10}
+  maxLength={10}
+  pattern="[0-9]{10}"
+  inputMode="numeric"
+  required
+/>
                 </div>
 
                 <div>
@@ -210,13 +237,12 @@ function Contact() {
                   </label>
 
                   <input
-                    id="contact-subject"
-                    name="subject"
-                    type="text"
-                    placeholder="Enter subject"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
-                  />
+  type="text"
+  name="subject"
+  minLength={3}
+  maxLength={100}
+  required
+/>
                 </div>
 
               </div>
@@ -230,14 +256,12 @@ function Contact() {
                   Your Message
                 </label>
 
-                <textarea
-                  id="contact-message"
-                  name="message"
-                  rows="5"
-                  placeholder="Write your message here..."
-                  required
-                  className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
-                />
+               <textarea
+  name="message"
+  minLength={10}
+  maxLength={1000}
+  required
+/>
               </div>
 
               {/* SUBMIT BUTTON */}

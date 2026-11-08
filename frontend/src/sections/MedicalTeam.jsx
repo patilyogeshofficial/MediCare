@@ -1,3 +1,4 @@
+
 import {
   Stethoscope,
   HeartHandshake,
@@ -54,7 +55,10 @@ function MedicalTeam() {
   ];
 
   return (
-    <section id="medical-team" className="bg-white py-20 lg:py-28">
+    <section
+      id="medical-team"
+      className="scroll-mt-20 bg-white py-20 lg:py-28"
+    >
       <div className="mx-auto max-w-7xl px-6">
 
         {/* SECTION HEADING */}

@@ -1,8 +1,14 @@
+
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { doctors } from "../data/doctors";
 
 function Doctors() {
   return (
-    <section id="doctors" className="bg-white py-20 lg:py-28">
+    <section
+      id="doctors"
+      className="scroll-mt-20 bg-white py-20 lg:py-28"
+    >
       <div className="mx-auto max-w-7xl px-6">
 
         {/* SECTION HEADING */}
@@ -23,7 +29,6 @@ function Doctors() {
 
         {/* DOCTORS GRID */}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-
           {doctors.map((doctor) => (
             <div
               key={doctor.name}
@@ -34,7 +39,7 @@ function Doctors() {
               <div className="h-64 overflow-hidden bg-cyan-50">
                 <img
                   src={doctor.image}
-                  alt={doctor.name}
+                  alt={`Dr. ${doctor.name}`}
                   loading="lazy"
                   decoding="async"
                   className="h-full w-full object-cover object-top transition duration-500 group-hover:scale-105"
@@ -43,7 +48,6 @@ function Doctors() {
 
               {/* DOCTOR DETAILS */}
               <div className="p-6">
-
                 <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-700">
                   {doctor.specialty}
                 </span>
@@ -72,27 +76,26 @@ function Doctors() {
                 </div>
 
                 {/* BOOK APPOINTMENT */}
-                <a
-                  href="#contact"
+                <Link
+                  to="/doctors"
                   className="mt-5 block rounded-xl bg-cyan-600 py-3 text-center text-sm font-bold text-white transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
                 >
                   Book Appointment
-                </a>
-
+                </Link>
               </div>
             </div>
           ))}
-
         </div>
 
         {/* BOTTOM CTA */}
         <div className="mt-12 text-center">
-          <a
-            href="#contact"
+          <Link
+            to="/doctors"
             className="inline-flex items-center gap-2 rounded-xl border border-cyan-600 px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
           >
-            View All Doctors →
-          </a>
+            View All Doctors
+            <ArrowRight size={18} aria-hidden="true" />
+          </Link>
         </div>
 
       </div>

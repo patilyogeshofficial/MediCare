@@ -18,6 +18,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import java.util.List;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @EnableMethodSecurity
 @Configuration
@@ -27,13 +31,13 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-  public SecurityConfig(
-        UserDetailsService userDetailsService,
-        JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            UserDetailsService userDetailsService,
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
 
-    this.userDetailsService = userDetailsService;
-    this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-}
+        this.userDetailsService = userDetailsService;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     // Password Encoder
     @Bean
@@ -45,8 +49,7 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
 
-        DaoAuthenticationProvider authProvider =
-                new DaoAuthenticationProvider(userDetailsService);
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
 
         authProvider.setPasswordEncoder(passwordEncoder());
 
@@ -61,51 +64,72 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
+    // CORS Configuration for React Frontend
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.setAllowedOrigins(
+                List.of("http://localhost:5173"));
+
+        configuration.setAllowedMethods(
+                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
+        configuration.setAllowedHeaders(
+                List.of("Authorization", "Content-Type"));
+
+        configuration.setAllowCredentials(false);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
+    }
+
     // Security Filter Chain
     @Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-    http
-        .csrf(csrf -> csrf.disable())
+        http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-        .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        )
+                .csrf(csrf -> csrf.disable())
 
-        .authorizeHttpRequests(auth -> auth
-    .requestMatchers(
-        "/",
-        "/error",
-        "/api/auth/**",
-        "/api/contact-messages"
-    ).permitAll()
-    .anyRequest().authenticated()
-)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-        .exceptionHandling(exception -> exception
-            .authenticationEntryPoint(
-                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
-            )
-        )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/",
+                                "/error",
+                                "/api/auth/**",
+                                "/api/contact-messages")
+                        .permitAll()
+                        .anyRequest().authenticated())
 
-        .authenticationProvider(authenticationProvider())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 
-        .addFilterBefore(
-            jwtAuthenticationFilter,
-            UsernamePasswordAuthenticationFilter.class
-        );
+                .authenticationProvider(authenticationProvider())
 
-    return http.build();
-}
-@Bean
-public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
-        JwtAuthenticationFilter filter) {
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
-    FilterRegistrationBean<JwtAuthenticationFilter> registration =
-            new FilterRegistrationBean<>(filter);
+        return http.build();
+    }
 
-    registration.setEnabled(false);
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
+            JwtAuthenticationFilter filter) {
 
-    return registration;
-}
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+
+        registration.setEnabled(false);
+
+        return registration;
+    }
 }

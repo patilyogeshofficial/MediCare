@@ -6,8 +6,10 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import com.medicare.backend.entity.Appointment;
+
 
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
@@ -18,6 +20,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     // Find appointments by doctor ID
     List<Appointment> findByDoctorId(Long doctorId);
 
+    long countByStatus(String status);
     // Check doctor scheduling conflict
     boolean existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
             Long doctorId,

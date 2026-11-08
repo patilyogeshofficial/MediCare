@@ -1,27 +1,33 @@
+
 package com.medicare.backend.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.dao.DataIntegrityViolationException;
 
 import com.medicare.backend.dto.AppointmentRequestDTO;
 import com.medicare.backend.dto.AppointmentResponseDTO;
 import com.medicare.backend.entity.Appointment;
+import com.medicare.backend.entity.Patient;
+import com.medicare.backend.entity.User;
 import com.medicare.backend.repository.AppointmentRepository;
 import com.medicare.backend.repository.DoctorRepository;
 import com.medicare.backend.repository.PatientRepository;
+import com.medicare.backend.repository.UserRepository;
 
 @Service
 public class AppointmentService {
 
+    private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final NotificationService notificationService;
 
     private static final List<String> ACTIVE_STATUSES =
             List.of("PENDING", "CONFIRMED");
@@ -33,11 +39,51 @@ public class AppointmentService {
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
-            DoctorRepository doctorRepository) {
+            DoctorRepository doctorRepository,
+            UserRepository userRepository,
+            NotificationService notificationService) {
 
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+    }
+
+    // Get appointments of the currently logged-in doctor
+    public List<AppointmentResponseDTO> getMyAppointments(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
+        var doctor = doctorRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Doctor profile not found"));
+
+        return appointmentRepository.findByDoctorId(doctor.getDoctorId())
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    // Get appointments of the currently logged-in patient
+    public List<AppointmentResponseDTO> getMyPatientAppointments(
+            String email) {
+
+        User user = userRepository.findByEmail(
+                email.trim().toLowerCase())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
+        Patient patient = patientRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Patient profile not found"));
+
+        return appointmentRepository.findByPatientId(patient.getPatientId())
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
     }
 
     // Get all appointments
@@ -88,17 +134,33 @@ public class AppointmentService {
     }
 
     // Book a new appointment
+    @Transactional
     public AppointmentResponseDTO createAppointment(
-            AppointmentRequestDTO dto) {
+            AppointmentRequestDTO dto,
+            String authenticatedEmail) {
 
-        validatePatientAndDoctor(dto);
+        User user = userRepository.findByEmail(
+                authenticatedEmail.trim().toLowerCase())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
+        Patient patient = patientRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Patient profile not found"));
+
+        Long patientId = patient.getPatientId();
+
+        if (!doctorRepository.existsById(dto.getDoctorId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Doctor not found");
+        }
 
         validateAppointmentDateTime(
                 dto.getAppointmentDate(),
                 dto.getAppointmentTime());
 
         validateScheduleConflict(
-                dto.getPatientId(),
+                patientId,
                 dto.getDoctorId(),
                 dto.getAppointmentDate(),
                 dto.getAppointmentTime(),
@@ -106,17 +168,34 @@ public class AppointmentService {
 
         Appointment appointment = new Appointment();
 
-        appointment.setPatientId(dto.getPatientId());
+        appointment.setPatientId(patientId);
         appointment.setDoctorId(dto.getDoctorId());
         appointment.setAppointmentDate(dto.getAppointmentDate());
         appointment.setAppointmentTime(dto.getAppointmentTime());
         appointment.setReason(dto.getReason());
-
-        // New appointments are always PENDING
         appointment.setStatus("PENDING");
 
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
+
+        // Existing patient notification
+        notificationService.createNotification(
+                user.getUserId(),
+                "Appointment Booked",
+                "Your appointment has been successfully booked and is awaiting confirmation.",
+                "APPOINTMENT_BOOKED",
+                savedAppointment.getAppointmentId(),
+                null
+        );
+
+        // Admin activity notification
+        notificationService.createAdminActivityNotification(
+                "New Appointment Booked",
+                "A new appointment has been booked and is awaiting confirmation.",
+                "NEW_APPOINTMENT",
+                savedAppointment.getAppointmentId(),
+                null
+        );
 
         return convertToDTO(savedAppointment);
     }
@@ -157,6 +236,7 @@ public class AppointmentService {
     }
 
     // Update appointment status
+    @Transactional
     public AppointmentResponseDTO updateAppointmentStatus(
             Long appointmentId,
             String status) {
@@ -169,7 +249,6 @@ public class AppointmentService {
                     "Invalid appointment status");
         }
 
-        // Check conflicts when activating an appointment
         if (ACTIVE_STATUSES.contains(status)
                 && !ACTIVE_STATUSES.contains(appointment.getStatus())) {
 
@@ -181,10 +260,114 @@ public class AppointmentService {
                     appointmentId);
         }
 
+        String previousStatus = appointment.getStatus();
+
         appointment.setStatus(status);
 
         Appointment updatedAppointment =
                 appointmentRepository.save(appointment);
+
+        // Notify patient only when appointment status changes
+        if (!status.equals(previousStatus)) {
+
+            Patient patient = patientRepository
+                    .findById(appointment.getPatientId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Patient not found"));
+
+            String title;
+            String message;
+            String notificationType = null;
+
+            switch (status) {
+
+                case "CONFIRMED":
+                    title = "Appointment Confirmed";
+                    message = "Your appointment has been confirmed.";
+                    notificationType = "APPOINTMENT_CONFIRMED";
+                    break;
+
+                case "REJECTED":
+                    title = "Appointment Rejected";
+                    message = "Your appointment request has been rejected.";
+                    notificationType = "APPOINTMENT_REJECTED";
+                    break;
+
+                case "CANCELLED":
+                    title = "Appointment Cancelled";
+                    message = "Your appointment has been cancelled.";
+                    notificationType = "APPOINTMENT_CANCELLED";
+                    break;
+
+                case "COMPLETED":
+                    title = "Appointment Completed";
+                    message = "Your appointment has been marked as completed.";
+                    break;
+
+                default:
+                    title = "Appointment Updated";
+                    message = "Your appointment status has been updated to "
+                            + status + ".";
+            }
+
+            if (notificationType != null) {
+                notificationService.createNotification(
+                        patient.getUserId(),
+                        title,
+                        message,
+                        notificationType,
+                        updatedAppointment.getAppointmentId(),
+                        null
+                );
+            }
+        }
+
+        return convertToDTO(updatedAppointment);
+    }
+
+    // Cancel appointment for the currently logged-in patient
+    @Transactional
+    public AppointmentResponseDTO cancelMyAppointment(
+            Long appointmentId,
+            String authenticatedEmail) {
+
+        User user = userRepository.findByEmail(
+                authenticatedEmail.trim().toLowerCase())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
+        Patient patient = patientRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Patient profile not found"));
+
+        Appointment appointment = findAppointment(appointmentId);
+
+        if (!appointment.getPatientId().equals(patient.getPatientId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not allowed to cancel this appointment");
+        }
+
+        if (!ACTIVE_STATUSES.contains(appointment.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only pending or confirmed appointments can be cancelled");
+        }
+
+        appointment.setStatus("CANCELLED");
+
+        Appointment updatedAppointment =
+                appointmentRepository.save(appointment);
+
+        // Notify patient about cancellation
+        notificationService.createNotification(
+                user.getUserId(),
+                "Appointment Cancelled",
+                "Your appointment has been successfully cancelled.",
+                "APPOINTMENT_CANCELLED",
+                updatedAppointment.getAppointmentId(),
+                null
+        );
 
         return convertToDTO(updatedAppointment);
     }
@@ -212,8 +395,7 @@ public class AppointmentService {
 
         return appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Appointment not found"));
+                        HttpStatus.NOT_FOUND, "Appointment not found"));
     }
 
     // Validate patient and doctor

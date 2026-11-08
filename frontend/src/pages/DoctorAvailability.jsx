@@ -1,0 +1,440 @@
+import { useState } from "react";
+import {
+  Clock,
+  CalendarDays,
+  CheckCircle,
+  XCircle,
+  Save,
+  RotateCcw,
+  Coffee,
+  Info,
+} from "lucide-react";
+import toast from "react-hot-toast";
+
+const initialAvailability = [
+  {
+    day: "Monday",
+    enabled: true,
+    startTime: "09:00",
+    endTime: "17:00",
+    breakStart: "13:00",
+    breakEnd: "14:00",
+  },
+  {
+    day: "Tuesday",
+    enabled: true,
+    startTime: "09:00",
+    endTime: "17:00",
+    breakStart: "13:00",
+    breakEnd: "14:00",
+  },
+  {
+    day: "Wednesday",
+    enabled: true,
+    startTime: "09:00",
+    endTime: "17:00",
+    breakStart: "13:00",
+    breakEnd: "14:00",
+  },
+  {
+    day: "Thursday",
+    enabled: true,
+    startTime: "09:00",
+    endTime: "17:00",
+    breakStart: "13:00",
+    breakEnd: "14:00",
+  },
+  {
+    day: "Friday",
+    enabled: true,
+    startTime: "09:00",
+    endTime: "17:00",
+    breakStart: "13:00",
+    breakEnd: "14:00",
+  },
+  {
+    day: "Saturday",
+    enabled: true,
+    startTime: "09:00",
+    endTime: "14:00",
+    breakStart: "12:00",
+    breakEnd: "12:30",
+  },
+  {
+    day: "Sunday",
+    enabled: false,
+    startTime: "09:00",
+    endTime: "17:00",
+    breakStart: "13:00",
+    breakEnd: "14:00",
+  },
+];
+
+function DoctorAvailability() {
+  const [availability, setAvailability] = useState(initialAvailability);
+  const [savedAvailability, setSavedAvailability] = useState(initialAvailability);
+
+  const handleToggle = (index) => {
+    setAvailability((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, enabled: !item.enabled } : item
+      )
+    );
+  };
+
+  const handleTimeChange = (index, field, value) => {
+    setAvailability((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const handleSave = () => {
+    const enabledDays = availability.filter((day) => day.enabled);
+
+    if (enabledDays.length === 0) {
+      toast.error("Please select at least one working day.");
+      return;
+    }
+
+    const invalidDay = enabledDays.find((day) => {
+      return (
+        day.startTime >= day.endTime ||
+        day.breakStart < day.startTime ||
+        day.breakEnd > day.endTime ||
+        day.breakStart >= day.breakEnd
+      );
+    });
+
+    if (invalidDay) {
+      toast.error(`Please check the timings for ${invalidDay.day}.`);
+      return;
+    }
+
+    setSavedAvailability(availability);
+    toast.success("Availability saved successfully!");
+  };
+
+  const handleReset = () => {
+    setAvailability(savedAvailability);
+    toast.success("Changes have been reset.");
+  };
+
+  const activeDays = availability.filter((day) => day.enabled).length;
+
+  const totalHours = availability
+    .filter((day) => day.enabled)
+    .reduce((total, day) => {
+      const start = day.startTime.split(":").map(Number);
+      const end = day.endTime.split(":").map(Number);
+      const breakStart = day.breakStart.split(":").map(Number);
+      const breakEnd = day.breakEnd.split(":").map(Number);
+
+      const workingMinutes =
+        end[0] * 60 +
+        end[1] -
+        (start[0] * 60 + start[1]);
+
+      const breakMinutes =
+        breakEnd[0] * 60 +
+        breakEnd[1] -
+        (breakStart[0] * 60 + breakStart[1]);
+
+      return total + (workingMinutes - breakMinutes);
+    }, 0);
+
+  const hours = Math.floor(totalHours / 60);
+  const minutes = totalHours % 60;
+
+  return (
+    <div>
+      {/* PAGE HEADER */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold text-slate-900">
+          Availability
+        </h1>
+
+        <p className="mt-1 text-sm text-slate-500">
+          Manage your weekly working hours and consultation timings.
+        </p>
+      </div>
+
+      {/* SUMMARY CARDS */}
+      <div className="grid gap-5 sm:grid-cols-3">
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="inline-flex rounded-xl bg-cyan-50 p-3 text-cyan-600">
+            <CalendarDays size={23} />
+          </div>
+
+          <p className="mt-4 text-sm font-medium text-slate-500">
+            Working Days
+          </p>
+
+          <h3 className="mt-1 text-3xl font-extrabold text-slate-900">
+            {activeDays}
+            <span className="ml-1 text-base font-medium text-slate-400">
+              / 7
+            </span>
+          </h3>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="inline-flex rounded-xl bg-green-50 p-3 text-green-600">
+            <Clock size={23} />
+          </div>
+
+          <p className="mt-4 text-sm font-medium text-slate-500">
+            Weekly Consultation Hours
+          </p>
+
+          <h3 className="mt-1 text-3xl font-extrabold text-slate-900">
+            {hours}
+            <span className="ml-1 text-base font-medium text-slate-400">
+              hrs {minutes > 0 ? `${minutes} min` : ""}
+            </span>
+          </h3>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="inline-flex rounded-xl bg-purple-50 p-3 text-purple-600">
+            <Coffee size={23} />
+          </div>
+
+          <p className="mt-4 text-sm font-medium text-slate-500">
+            Break Schedule
+          </p>
+
+          <h3 className="mt-1 text-2xl font-extrabold text-slate-900">
+            Daily Break
+          </h3>
+          <p className="mt-1 text-xs text-slate-400">
+            Customizable for each day
+          </p>
+        </div>
+      </div>
+
+      {/* AVAILABILITY SETTINGS */}
+      <div className="mt-8 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+
+        <div className="border-b border-slate-100 p-6">
+          <h2 className="text-lg font-bold text-slate-900">
+            Weekly Schedule
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Set your consultation hours for each day of the week.
+          </p>
+        </div>
+
+        <div className="divide-y divide-slate-100">
+          {availability.map((day, index) => (
+            <div
+              key={day.day}
+              className={`p-5 transition sm:p-6 ${
+                day.enabled ? "bg-white" : "bg-slate-50/70"
+              }`}
+            >
+              {/* DAY HEADER */}
+              <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleToggle(index)}
+                    role="switch"
+                    aria-checked={day.enabled}
+                    aria-label={`Enable ${day.day}`}
+                    className={`relative h-6 w-11 rounded-full transition ${
+                      day.enabled ? "bg-cyan-600" : "bg-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
+                        day.enabled ? "left-6" : "left-1"
+                      }`}
+                    />
+                  </button>
+
+                  <div>
+                    <h3 className="font-bold text-slate-800">
+                      {day.day}
+                    </h3>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      {day.enabled
+                        ? "Available for appointments"
+                        : "Day off"}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  {day.enabled ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+                      <CheckCircle size={14} />
+                      Available
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
+                      <XCircle size={14} />
+                      Unavailable
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* TIME SETTINGS */}
+              {day.enabled && (
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+                  <div>
+                    <label
+                      htmlFor={`start-${index}`}
+                      className="mb-2 block text-xs font-semibold text-slate-500"
+                    >
+                      Start Time
+                    </label>
+
+                    <input
+                      id={`start-${index}`}
+                      type="time"
+                      value={day.startTime}
+                      onChange={(e) =>
+                        handleTimeChange(
+                          index,
+                          "startTime",
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor={`end-${index}`}
+                      className="mb-2 block text-xs font-semibold text-slate-500"
+                    >
+                      End Time
+                    </label>
+
+                    <input
+                      id={`end-${index}`}
+                      type="time"
+                      value={day.endTime}
+                      onChange={(e) =>
+                        handleTimeChange(
+                          index,
+                          "endTime",
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor={`break-start-${index}`}
+                      className="mb-2 block text-xs font-semibold text-slate-500"
+                    >
+                      Break Start
+                    </label>
+
+                    <input
+                      id={`break-start-${index}`}
+                      type="time"
+                      value={day.breakStart}
+                      onChange={(e) =>
+                        handleTimeChange(
+                          index,
+                          "breakStart",
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor={`break-end-${index}`}
+                      className="mb-2 block text-xs font-semibold text-slate-500"
+                    >
+                      Break End
+                    </label>
+
+                    <input
+                      id={`break-end-${index}`}
+                      type="time"
+                      value={day.breakEnd}
+                      onChange={(e) =>
+                        handleTimeChange(
+                          index,
+                          "breakEnd",
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </div>
+
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* ACTION BUTTONS */}
+        <div className="flex flex-col justify-between gap-4 border-t border-slate-100 bg-slate-50/50 p-5 sm:flex-row sm:items-center sm:px-6">
+
+          <p className="flex items-center gap-2 text-xs text-slate-500">
+            <Info size={16} className="shrink-0 text-cyan-600" />
+            Changes are local demo data and are not saved to the server.
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+            >
+              <RotateCcw size={16} />
+              Reset Changes
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              className="flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+            >
+              <Save size={17} />
+              Save Availability
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* INFORMATION CARD */}
+      <div className="mt-6 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+        <Info size={20} className="mt-0.5 shrink-0 text-blue-600" />
+
+        <div>
+          <h3 className="text-sm font-bold text-blue-900">
+            Availability Information
+          </h3>
+
+          <p className="mt-1 text-sm leading-6 text-blue-800">
+            Your availability settings determine when patients can request
+            appointments with you. Make sure your working hours and break
+            timings are accurate.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default DoctorAvailability;

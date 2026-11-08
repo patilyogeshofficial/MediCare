@@ -1,3 +1,4 @@
+
 import { ArrowRight } from "lucide-react";
 
 function FAQ() {
@@ -20,22 +21,40 @@ function FAQ() {
     {
       question: "Does MediCare provide emergency services?",
       answer:
-        "MediCare showcases emergency care as one of its planned healthcare services. For a real medical emergency, contact your local emergency services or visit the nearest emergency department.",
+        "MediCare provides information about healthcare services, including emergency care. For a medical emergency, contact your local emergency services or visit the nearest emergency department.",
     },
     {
       question: "Can I cancel or reschedule an appointment?",
       answer:
-        "Appointment cancellation and rescheduling options will be available through the patient portal as the appointment management functionality is developed.",
+        "You can manage your appointments through your patient dashboard. For assistance with cancellations or rescheduling, please contact our support team.",
     },
     {
       question: "How can I access my medical records?",
       answer:
-        "Registered patients will be able to access their available medical information through their secure patient dashboard once the medical records module is implemented.",
+        "Registered patients can access their available medical information through their secure patient dashboard.",
     },
   ];
 
+  const handleContactClick = (event) => {
+    event.preventDefault();
+
+    const contactSection = document.getElementById("contact");
+
+    if (contactSection) {
+      contactSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      window.history.replaceState(null, "", "#contact");
+    }
+  };
+
   return (
-    <section id="faq" className="bg-slate-50 py-20 lg:py-28">
+    <section
+      id="faq"
+      className="scroll-mt-20 bg-slate-50 py-20 lg:py-28"
+    >
       <div className="mx-auto max-w-7xl px-6">
 
         {/* SECTION HEADING */}
@@ -56,7 +75,7 @@ function FAQ() {
 
         {/* FAQ ACCORDION */}
         <div className="mx-auto max-w-4xl space-y-4">
-          {faqs.map((faq, index) => (
+          {faqs.map((faq) => (
             <details
               key={faq.question}
               className="group rounded-xl border border-slate-200 bg-white transition-all duration-300 hover:border-cyan-200 hover:shadow-sm motion-reduce:transition-none"
@@ -95,6 +114,7 @@ function FAQ() {
 
           <a
             href="#contact"
+            onClick={handleContactClick}
             className="mt-6 inline-flex items-center gap-2 rounded-full bg-cyan-600 px-8 py-4 font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700 motion-reduce:transform-none motion-reduce:transition-none"
           >
             Contact Us

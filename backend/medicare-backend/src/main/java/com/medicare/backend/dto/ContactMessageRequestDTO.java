@@ -1,24 +1,34 @@
+
 package com.medicare.backend.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 
 public class ContactMessageRequestDTO {
 
+    @Pattern(regexp = "^[A-Za-z][A-Za-z '-]*$", message = "Name can contain only letters, spaces, apostrophes and hyphens")
     @NotBlank(message = "Name is required")
-    @Size(max = 100, message = "Name cannot exceed 100 characters")
+    @Size(min = 3, max = 50, message = "Name must be between 3 and 50 characters")
+    @Pattern(regexp = "^[A-Za-z ]+$", message = "Name can contain only letters and spaces")
     private String name;
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Please provide a valid email address")
-    @Size(max = 150, message = "Email cannot exceed 150 characters")
+    @Email(message = "Please enter a valid email address")
+    @Size(max = 100, message = "Email cannot exceed 100 characters")
     private String email;
 
-    @Size(max = 200, message = "Subject cannot exceed 200 characters")
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must contain exactly 10 digits")
+    private String phone;
+
+    @NotBlank(message = "Subject is required")
+    @Size(min = 3, max = 100, message = "Subject must be between 3 and 100 characters")
     private String subject;
 
     @NotBlank(message = "Message is required")
+    @Size(min = 10, max = 1000, message = "Message must be between 10 and 1000 characters")
     private String message;
 
     // Getters and Setters
@@ -37,6 +47,14 @@ public class ContactMessageRequestDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getSubject() {

@@ -1,5 +1,6 @@
 package com.medicare.backend.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,4 +13,6 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, Long
 
     boolean existsByAppointmentId(Long appointmentId);
 
+    // Find prescriptions linked to multiple appointments
+    List<Prescription> findByAppointmentIdIn(List<Long> appointmentIds);
 }

@@ -1,3 +1,4 @@
+
 package com.medicare.backend.entity;
 
 import java.time.OffsetDateTime;
@@ -19,19 +20,23 @@ public class ContactMessage {
     @Column(name = "email", nullable = false, length = 150)
     private String email;
 
+    @Column(name = "phone", length = 20)
+    private String phone;
+
     @Column(name = "subject", length = 200)
     private String subject;
 
     @Column(name = "message", nullable = false, columnDefinition = "TEXT")
     private String message;
 
+    @Column(name = "is_read", nullable = false)
+    private boolean isRead = false;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
     public ContactMessage() {
     }
-
-    // Getters and Setters
 
     public Long getMessageId() {
         return messageId;
@@ -57,6 +62,14 @@ public class ContactMessage {
         this.email = email;
     }
 
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
     public String getSubject() {
         return subject;
     }
@@ -71,6 +84,14 @@ public class ContactMessage {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public boolean isRead() {
+        return isRead;
+    }
+
+    public void setRead(boolean read) {
+        isRead = read;
     }
 
     public OffsetDateTime getCreatedAt() {

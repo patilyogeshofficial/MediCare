@@ -1,0 +1,18 @@
+$kind: http-request
+name: http://localhost:8080/api/auth/login
+description: ""
+url: http://localhost:8080/api/auth/login
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "fullName": "Test Doctor",
+        "email": "doctortest@example.com",
+        "password": "YourTestPassword123",
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{json_web_token_105x}}"
+order: 1000

@@ -1,3 +1,4 @@
+
 import { Quote, Star } from "lucide-react";
 
 function Testimonials() {
@@ -29,7 +30,10 @@ function Testimonials() {
   ];
 
   return (
-    <section id="testimonials" className="bg-white py-20 lg:py-28">
+    <section
+      id="testimonials"
+      className="scroll-mt-20 bg-white py-20 lg:py-28"
+    >
       <div className="mx-auto max-w-7xl px-6">
 
         {/* SECTION HEADING */}
@@ -51,7 +55,7 @@ function Testimonials() {
         {/* TESTIMONIALS GRID */}
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {reviews.map((review) => (
-            <div
+            <article
               key={review.initials}
               className="group rounded-2xl border border-slate-100 bg-slate-50 p-8 transition-all duration-300 hover:-translate-y-2 hover:border-cyan-200 hover:bg-white hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none"
             >
@@ -78,9 +82,9 @@ function Testimonials() {
               </div>
 
               {/* PATIENT FEEDBACK */}
-              <p className="mb-8 text-sm leading-7 text-slate-600">
+              <blockquote className="mb-8 text-sm leading-7 text-slate-600">
                 "{review.feedback}"
-              </p>
+              </blockquote>
 
               {/* PATIENT DETAILS */}
               <div className="flex items-center gap-4 border-t border-slate-200 pt-6">
@@ -101,13 +105,13 @@ function Testimonials() {
                   </p>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
 
         {/* DISCLAIMER */}
         <p className="mt-8 text-center text-xs text-slate-400">
-          Illustrative testimonials for the MediCare demo homepage.
+          Illustrative testimonials and ratings for the MediCare demo homepage.
         </p>
 
       </div>

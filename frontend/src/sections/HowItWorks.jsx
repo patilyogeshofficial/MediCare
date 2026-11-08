@@ -1,3 +1,4 @@
+
 import {
   UserRound,
   Stethoscope,
@@ -5,8 +6,12 @@ import {
   HeartPulse,
   ArrowRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function HowItWorks() {
+  const { user, isAuthenticated } = useAuth();
+
   const steps = [
     {
       number: "01",
@@ -38,10 +43,25 @@ function HowItWorks() {
     },
   ];
 
+  const getStartedPath = () => {
+    if (!isAuthenticated) return "/register";
+
+    switch (user?.role) {
+      case "ADMIN":
+        return "/admin/dashboard";
+      case "DOCTOR":
+        return "/doctor/dashboard";
+      case "PATIENT":
+        return "/patient/dashboard";
+      default:
+        return "/login";
+    }
+  };
+
   return (
     <section
       id="how-it-works"
-      className="bg-slate-50 py-20 lg:py-28"
+      className="scroll-mt-20 bg-slate-50 py-20 lg:py-28"
     >
       <div className="mx-auto max-w-7xl px-6">
 
@@ -97,16 +117,13 @@ function HowItWorks() {
 
         {/* BOTTOM CTA */}
         <div className="mt-16 text-center">
-          <button
-            type="button"
-            onClick={() =>
-              window.scrollTo({ top: 0, behavior: "smooth" })
-            }
+          <Link
+            to={getStartedPath()}
             className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-8 py-4 font-bold text-white shadow-lg shadow-cyan-100 transition duration-300 hover:-translate-y-1 hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700 motion-reduce:transform-none motion-reduce:transition-none"
           >
             Get Started
             <ArrowRight size={18} aria-hidden="true" />
-          </button>
+          </Link>
         </div>
 
       </div>

@@ -1,42 +1,66 @@
+import { Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import Hero from "./sections/Hero";
-import About from "./sections/About";       
-import Specialities from "./sections/Specialities"; 
-import Doctors from "./sections/Doctors";
-import HealthcareServices from "./sections/HealthcareServices";
-import WhyChooseUs from "./sections/WhyChooseUs";
-import MedicalTeam from "./sections/MedicalTeam";
-import HowItWorks from "./sections/HowItWorks";
-import Testimonials from "./sections/Testimonials";
-import FAQ from "./sections/FAQ";
-import Contact from "./sections/Contact";
 
-import './App.css'
+import HomePage from "./pages/HomePage";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+
+import PatientDashboard from "./pages/PatientDashboard";
+import AppointmentBooking from "./pages/AppointmentBooking";
+import AdminDashboard from "./pages/AdminDashboard";
+import DoctorDashboard from "./pages/DoctorDashboard";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+import VerifyOtp from "./pages/VerifyOtp";
+import ResetPassword from "./pages/ResetPassword";
+import AllDoctors from "./pages/AllDoctors";
+
 function App() {
   return (
-    <div className="min-h-screen bg-white text-slate-800">
-      <Navbar />
-
+    <>
       <Toaster position="top-right" />
 
-      <main>
-        <Hero />
-        <About />
-        <Specialities />
-        <Doctors />
-        <HealthcareServices />
-        <WhyChooseUs />
-        <MedicalTeam />
-        <HowItWorks />
-        <Testimonials />
-        <FAQ />
-        <Contact />
-      </main>
+      <Routes>
+        {/* PUBLIC ROUTES */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      <Footer />
-    </div>
+        {/* ADMIN ROUTES */}
+        <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+          <Route
+            path="/admin/dashboard"
+            element={<AdminDashboard />}
+          />
+        </Route>
+
+        {/* DOCTOR ROUTES */}
+        <Route element={<ProtectedRoute allowedRoles={["DOCTOR"]} />}>
+          <Route
+            path="/doctor/dashboard"
+            element={<DoctorDashboard />}
+          />
+        </Route>
+
+        {/* PATIENT ROUTES */}
+        <Route element={<ProtectedRoute allowedRoles={["PATIENT"]} />}>
+          <Route
+            path="/patient/dashboard"
+            element={<PatientDashboard />}
+          />
+
+          <Route
+            path="/patient/appointments/book"
+            element={<AppointmentBooking />}
+          />
+        </Route>
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/doctors" element={<AllDoctors />} />
+      </Routes>
+    </>
   );
 }
 

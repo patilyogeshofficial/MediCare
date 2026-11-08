@@ -1,21 +1,22 @@
+
 package com.medicare.backend.controller;
 
 import java.util.List;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import com.medicare.backend.dto.PatientResponseDTO;
-import com.medicare.backend.service.PatientService;
-import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
+import com.medicare.backend.dto.PatientProfileResponseDTO;
+import com.medicare.backend.dto.PatientProfileUpdateDTO;
 import com.medicare.backend.dto.PatientRequestDTO;
+import com.medicare.backend.dto.PatientResponseDTO;
+import com.medicare.backend.service.PatientService;
+
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/patients")
 public class PatientController {
@@ -26,36 +27,103 @@ public class PatientController {
         this.patientService = patientService;
     }
 
+    // ==========================================
+    // GET ALL PATIENTS - ADMIN ONLY
+    // ==========================================
+
     @GetMapping
-    public List<PatientResponseDTO> getAllPatients() {
-        return patientService.getAllPatients();
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PatientResponseDTO>> getAllPatients() {
+
+        return ResponseEntity.ok(
+                patientService.getAllPatients());
     }
+
+    // ==========================================
+    // GET PATIENT BY ID - ADMIN ONLY
+    // ==========================================
 
     @GetMapping("/{patientId}")
-    public PatientResponseDTO getPatientById(@PathVariable Long patientId) {
-        return patientService.getPatientById(patientId);
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PatientResponseDTO> getPatientById(
+            @PathVariable Long patientId) {
+
+        return ResponseEntity.ok(
+                patientService.getPatientById(patientId));
     }
+
+    // ==========================================
+    // CREATE PATIENT - ADMIN ONLY
+    // ==========================================
+
     @PostMapping
-public ResponseEntity<PatientResponseDTO> createPatient(
-        @Valid @RequestBody PatientRequestDTO request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PatientResponseDTO> createPatient(
+            @Valid @RequestBody PatientRequestDTO request) {
 
-    PatientResponseDTO response = patientService.createPatient(request);
+        PatientResponseDTO response =
+                patientService.createPatient(request);
 
-    return ResponseEntity.status(HttpStatus.CREATED).body(response);
-}
-@PutMapping("/{patientId}")
-public PatientResponseDTO updatePatient(
-        @PathVariable Long patientId,
-        @Valid @RequestBody PatientRequestDTO request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
 
-    return patientService.updatePatient(patientId, request);
-}
-@DeleteMapping("/{patientId}")
-public ResponseEntity<Void> deletePatient(@PathVariable Long patientId) {
+    // ==========================================
+    // UPDATE PATIENT - ADMIN ONLY
+    // ==========================================
 
-    patientService.deletePatient(patientId);
+    @PutMapping("/{patientId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PatientResponseDTO> updatePatient(
+            @PathVariable Long patientId,
+            @Valid @RequestBody PatientRequestDTO request) {
 
-    return ResponseEntity.noContent().build();
-}
+        return ResponseEntity.ok(
+                patientService.updatePatient(patientId, request));
+    }
 
+    // ==========================================
+    // DELETE PATIENT - ADMIN ONLY
+    // ==========================================
+
+    @DeleteMapping("/{patientId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deletePatient(
+            @PathVariable Long patientId) {
+
+        patientService.deletePatient(patientId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==========================================
+    // GET MY PROFILE - PATIENT ONLY
+    // ==========================================
+
+    @GetMapping("/my-profile")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<PatientProfileResponseDTO> getMyProfile(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                patientService.getMyProfile(
+                        authentication.getName()));
+    }
+
+    // ==========================================
+    // UPDATE MY PROFILE - PATIENT ONLY
+    // ==========================================
+
+    @PutMapping("/my-profile")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<PatientProfileResponseDTO> updateMyProfile(
+            @Valid @RequestBody PatientProfileUpdateDTO request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                patientService.updateMyProfile(
+                        authentication.getName(),
+                        request));
+    }
 }

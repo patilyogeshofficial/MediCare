@@ -1,11 +1,27 @@
+
 import { ArrowRight } from "lucide-react";
 import { services } from "../data/services";
 
 function HealthcareServices() {
+  const handleScroll = (event, targetId) => {
+    event.preventDefault();
+
+    const target = document.getElementById(targetId);
+
+    if (target) {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      window.history.replaceState(null, "", `#${targetId}`);
+    }
+  };
+
   return (
     <section
       id="healthcare-services"
-      className="bg-slate-50 py-20 lg:py-28"
+      className="scroll-mt-20 bg-slate-50 py-20 lg:py-28"
     >
       <div className="mx-auto max-w-7xl px-6">
 
@@ -49,8 +65,10 @@ function HealthcareServices() {
                   {service.description}
                 </p>
 
+                {/* LEARN MORE */}
                 <a
                   href="#contact"
+                  onClick={(event) => handleScroll(event, "contact")}
                   className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
                 >
                   Learn More
@@ -72,8 +90,10 @@ function HealthcareServices() {
             the right medical professionals for your needs.
           </p>
 
+          {/* FIND A DOCTOR */}
           <a
             href="#doctors"
+            onClick={(event) => handleScroll(event, "doctors")}
             className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
             Find a Doctor

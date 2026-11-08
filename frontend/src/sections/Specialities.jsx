@@ -1,11 +1,12 @@
+
 import {
   Heart,
   Brain,
   Bone,
-  Activity,
+  ScanFace,
   Baby,
   Stethoscope,
-  UserRound,
+  Venus,
   Eye,
   ArrowRight,
 } from "lucide-react";
@@ -36,7 +37,7 @@ const specialities = [
     name: "Dermatology",
     description:
       "Professional care for skin, hair and nail conditions.",
-    icon: Activity,
+    icon: ScanFace,
     color: "bg-pink-50 text-pink-600",
   },
   {
@@ -57,7 +58,7 @@ const specialities = [
     name: "Gynecology",
     description:
       "Healthcare services focused on women's reproductive health.",
-    icon: UserRound,
+    icon: Venus,
     color: "bg-rose-50 text-rose-600",
   },
   {
@@ -70,8 +71,27 @@ const specialities = [
 ];
 
 function Specialities() {
+  // Navigate to the doctors section
+  const handleExploreDoctors = (event) => {
+    event.preventDefault();
+
+    const doctorsSection = document.getElementById("doctors");
+
+    if (doctorsSection) {
+      doctorsSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      window.history.replaceState(null, "", "#doctors");
+    }
+  };
+
   return (
-    <section id="services" className="bg-slate-50 py-20 lg:py-28">
+    <section
+      id="services"
+      className="scroll-mt-20 bg-slate-50 py-20 lg:py-28"
+    >
       <div className="mx-auto max-w-7xl px-6">
 
         {/* SECTION HEADING */}
@@ -100,22 +120,27 @@ function Specialities() {
                 key={speciality.name}
                 className="group rounded-2xl border border-slate-100 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-cyan-200 hover:shadow-xl"
               >
+                {/* SPECIALITY ICON */}
                 <div
                   className={`flex h-14 w-14 items-center justify-center rounded-2xl ${speciality.color}`}
                 >
                   <Icon size={28} aria-hidden="true" />
                 </div>
 
+                {/* SPECIALITY NAME */}
                 <h3 className="mt-6 text-xl font-bold text-slate-900">
                   {speciality.name}
                 </h3>
 
+                {/* DESCRIPTION */}
                 <p className="mt-3 min-h-16 text-sm leading-6 text-slate-600">
                   {speciality.description}
                 </p>
 
+                {/* EXPLORE DEPARTMENT */}
                 <a
                   href="#doctors"
+                  onClick={handleExploreDoctors}
                   className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
                 >
                   Explore Department
@@ -130,6 +155,7 @@ function Specialities() {
         <div className="mt-12 text-center">
           <a
             href="#doctors"
+            onClick={handleExploreDoctors}
             className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-7 py-4 font-bold text-white transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
           >
             Explore All Specialities

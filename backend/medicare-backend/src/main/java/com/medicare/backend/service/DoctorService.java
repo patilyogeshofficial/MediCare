@@ -196,15 +196,28 @@ public class DoctorService {
     }
 
     // Convert Entity to Response DTO
-    private DoctorResponseDTO convertToDTO(Doctor doctor) {
+// Convert Entity to Response DTO
+private DoctorResponseDTO convertToDTO(Doctor doctor) {
 
-        return new DoctorResponseDTO(
-                doctor.getDoctorId(),
-                doctor.getUserId(),
-                doctor.getSpecializationId(),
-                doctor.getLicenseNumber(),
-                doctor.getQualification(),
-                doctor.getExperienceYears(),
-                doctor.getConsultationFee());
-    }
+    User user = userRepository.findById(doctor.getUserId())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Doctor user not found"));
+
+    Specialization specialization = specializationRepository
+            .findById(doctor.getSpecializationId())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Specialization not found"));
+
+    return new DoctorResponseDTO(
+            doctor.getDoctorId(),
+            doctor.getUserId(),
+            user.getFullName(),
+            user.getEmail(),
+            doctor.getSpecializationId(),
+            specialization.getSpecializationName(),
+            doctor.getLicenseNumber(),
+            doctor.getQualification(),
+            doctor.getExperienceYears(),
+            doctor.getConsultationFee());
+}
 }

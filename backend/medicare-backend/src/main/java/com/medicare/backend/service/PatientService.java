@@ -1,159 +1,228 @@
 package com.medicare.backend.service;
 
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 import java.util.List;
+import java.util.Locale;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.medicare.backend.dto.PatientProfileResponseDTO;
+import com.medicare.backend.dto.PatientProfileUpdateDTO;
+import com.medicare.backend.dto.PatientRequestDTO;
 import com.medicare.backend.dto.PatientResponseDTO;
 import com.medicare.backend.entity.Patient;
-import com.medicare.backend.repository.PatientRepository;
-import com.medicare.backend.dto.PatientRequestDTO;
 import com.medicare.backend.entity.User;
-import com.medicare.backend.repository.UserRepository;
 import com.medicare.backend.enums.Role;
+import com.medicare.backend.repository.PatientRepository;
+import com.medicare.backend.repository.UserRepository;
 
 @Service
 public class PatientService {
 
-        private final PatientRepository patientRepository;
-        private final UserRepository userRepository;
+    private final PatientRepository patientRepository;
+    private final UserRepository userRepository;
 
-        public PatientService(PatientRepository patientRepository,
-                        UserRepository userRepository) {
-                this.patientRepository = patientRepository;
-                this.userRepository = userRepository;
+    public PatientService(
+            PatientRepository patientRepository,
+            UserRepository userRepository) {
+
+        this.patientRepository = patientRepository;
+        this.userRepository = userRepository;
+    }
+
+    // Get all patients
+    public List<PatientResponseDTO> getAllPatients() {
+
+        return patientRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    // Convert Patient entity to existing response DTO
+    private PatientResponseDTO convertToDTO(Patient patient) {
+
+        return new PatientResponseDTO(
+                patient.getPatientId(),
+                patient.getUserId(),
+                patient.getDateOfBirth(),
+                patient.getGender(),
+                patient.getPhone(),
+                patient.getAddress(),
+                patient.getBloodGroup());
+    }
+
+    // Get patient by ID
+    public PatientResponseDTO getPatientById(Long patientId) {
+
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found with ID: " + patientId));
+
+        return convertToDTO(patient);
+    }
+
+    // Create patient
+    public PatientResponseDTO createPatient(PatientRequestDTO request) {
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found with ID: " + request.getUserId()));
+
+        if (user.getRole() != Role.PATIENT) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "User must have PATIENT role");
         }
 
-        public List<PatientResponseDTO> getAllPatients() {
-
-                return patientRepository.findAll()
-                                .stream()
-                                .map(this::convertToDTO)
-                                .toList();
+        if (patientRepository.existsByUserId(request.getUserId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Patient profile already exists for this user");
         }
 
-        private PatientResponseDTO convertToDTO(Patient patient) {
+        Patient patient = new Patient();
 
-                return new PatientResponseDTO(
-                                patient.getPatientId(),
-                                patient.getUserId(),
-                                patient.getDateOfBirth(),
-                                patient.getGender(),
-                                patient.getPhone(),
-                                patient.getAddress(),
-                                patient.getBloodGroup());
+        patient.setUserId(request.getUserId());
+        patient.setDateOfBirth(request.getDateOfBirth());
+        patient.setGender(request.getGender());
+        patient.setPhone(request.getPhone());
+        patient.setAddress(request.getAddress());
+        patient.setBloodGroup(request.getBloodGroup());
 
+        Patient savedPatient = patientRepository.save(patient);
+
+        return convertToDTO(savedPatient);
+    }
+
+    // Update patient by ID
+    public PatientResponseDTO updatePatient(
+            Long patientId,
+            PatientRequestDTO request) {
+
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found with ID: " + patientId));
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found with ID: " + request.getUserId()));
+
+        if (user.getRole() != Role.PATIENT) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "User must have PATIENT role");
         }
 
-        public PatientResponseDTO getPatientById(Long patientId) {
+        if (!patient.getUserId().equals(request.getUserId())
+                && patientRepository.existsByUserId(request.getUserId())) {
 
-                Patient patient = patientRepository.findById(patientId)
-                                .orElseThrow(() -> new ResponseStatusException(
-                                                HttpStatus.NOT_FOUND,
-                                                "Patient not found with ID: " + patientId));
-
-                return convertToDTO(patient);
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Patient profile already exists for this user");
         }
 
-        public PatientResponseDTO createPatient(PatientRequestDTO request) {
+        patient.setUserId(request.getUserId());
+        patient.setDateOfBirth(request.getDateOfBirth());
+        patient.setGender(request.getGender());
+        patient.setPhone(request.getPhone());
+        patient.setAddress(request.getAddress());
+        patient.setBloodGroup(request.getBloodGroup());
 
-                // 1. Check whether user exists
-                User user = userRepository.findById(request.getUserId())
-                                .orElseThrow(() -> new ResponseStatusException(
-                                                HttpStatus.NOT_FOUND,
-                                                "User not found with ID: " + request.getUserId()));
+        Patient updatedPatient = patientRepository.save(patient);
 
-                // 2. Check user role
-                if (user.getRole() != Role.PATIENT) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "User must have PATIENT role");
-                }
+        return convertToDTO(updatedPatient);
+    }
 
-                // 3. Check duplicate patient profile
-                if (patientRepository.existsByUserId(request.getUserId())) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.CONFLICT,
-                                        "Patient profile already exists for this user");
-                }
+    // Get logged-in patient's profile
+    public PatientProfileResponseDTO getMyProfile(String authenticatedEmail) {
 
-                // 4. Create patient entity
-                Patient patient = new Patient();
+        User user = getAuthenticatedPatient(authenticatedEmail);
 
-                patient.setUserId(request.getUserId());
-                patient.setDateOfBirth(request.getDateOfBirth());
-                patient.setGender(request.getGender());
-                patient.setPhone(request.getPhone());
-                patient.setAddress(request.getAddress());
-                patient.setBloodGroup(request.getBloodGroup());
+        Patient patient = patientRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient profile not found"));
 
-                // 5. Save patient
-                Patient savedPatient = patientRepository.save(patient);
+        return convertToProfileDTO(user, patient);
+    }
 
-                // 6. Return DTO
-                return convertToDTO(savedPatient);
+    // Update logged-in patient's profile
+    @Transactional
+    public PatientProfileResponseDTO updateMyProfile(
+            String authenticatedEmail,
+            PatientProfileUpdateDTO request) {
+
+        User user = getAuthenticatedPatient(authenticatedEmail);
+
+        Patient patient = patientRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient profile not found"));
+
+        user.setFullName(request.getFullName().trim());
+
+        patient.setDateOfBirth(request.getDateOfBirth());
+        patient.setGender(request.getGender());
+        patient.setPhone(request.getPhone());
+        patient.setAddress(request.getAddress());
+        patient.setBloodGroup(request.getBloodGroup());
+
+        userRepository.save(user);
+        patientRepository.save(patient);
+
+        return convertToProfileDTO(user, patient);
+    }
+
+    // Verify authenticated user is a patient
+    private User getAuthenticatedPatient(String authenticatedEmail) {
+
+        String email = authenticatedEmail.trim().toLowerCase(Locale.ROOT);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Authenticated user not found"));
+
+        if (user.getRole() != Role.PATIENT) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only patients can access this profile");
         }
 
-        public PatientResponseDTO updatePatient(
-                        Long patientId, PatientRequestDTO request) {
+        return user;
+    }
 
-                // 1. Find existing patient
-                Patient patient = patientRepository.findById(patientId)
-                                .orElseThrow(() -> new ResponseStatusException(
-                                                HttpStatus.NOT_FOUND,
-                                                "Patient not found with ID: " + patientId));
+    // Convert User and Patient entities into profile response DTO
+    private PatientProfileResponseDTO convertToProfileDTO(
+            User user,
+            Patient patient) {
 
-                // 2. Check user exists
-                User user = userRepository.findById(request.getUserId())
-                                .orElseThrow(() -> new ResponseStatusException(
-                                                HttpStatus.NOT_FOUND,
-                                                "User not found with ID: " + request.getUserId()));
+        return new PatientProfileResponseDTO(
+                patient.getPatientId(),
+                user.getFullName(),
+                user.getEmail(),
+                patient.getDateOfBirth(),
+                patient.getGender(),
+                patient.getPhone(),
+                patient.getAddress(),
+                patient.getBloodGroup());
+    }
 
-                // 3. Check user role
-                if (user.getRole() != Role.PATIENT) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "User must have PATIENT role");
-                }
+    // Delete patient
+    public void deletePatient(Long patientId) {
 
-                // 4. Check duplicate profile
-                if (!patient.getUserId().equals(request.getUserId())
-                                && patientRepository.existsByUserId(request.getUserId())) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found with ID: " + patientId));
 
-                        throw new ResponseStatusException(
-                                        HttpStatus.CONFLICT,
-                                        "Patient profile already exists for this user");
-                }
-
-                // 5. Update patient details
-                patient.setUserId(request.getUserId());
-                patient.setDateOfBirth(request.getDateOfBirth());
-                patient.setGender(request.getGender());
-                patient.setPhone(request.getPhone());
-                patient.setAddress(request.getAddress());
-                patient.setBloodGroup(request.getBloodGroup());
-
-                // 6. Save updated patient
-                Patient updatedPatient = patientRepository.save(patient);
-
-                return convertToDTO(updatedPatient);
-        }
-
-        public void deletePatient(Long patientId) {
-
-                Patient patient = patientRepository.findById(patientId)
-
-                                .orElseThrow(() -> new ResponseStatusException(
-
-                                                HttpStatus.NOT_FOUND,
-
-                                                "Patient not found with ID: " + patientId
-
-                                ));
-
-                patientRepository.delete(patient);
-
-        }
+        patientRepository.delete(patient);
+    }
 }
