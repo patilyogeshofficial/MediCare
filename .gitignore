@@ -71,3 +71,7 @@ pnpm-debug.log*
 *.zip
 backend/medicare-backend/CURRENT_TIMESTAMP
 /main
+
+
+# Local database backups
+/medicare_schema.sql
