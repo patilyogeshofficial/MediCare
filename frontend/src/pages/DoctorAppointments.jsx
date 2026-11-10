@@ -16,6 +16,7 @@ import {
   Trash2,
   Pill,
   FileText,
+  Printer,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../services/api";
@@ -90,6 +91,11 @@ function DoctorAppointments() {
 
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
+
+  const [viewingPrescription, setViewingPrescription] = useState(null);
+  const [loadingPrescription, setLoadingPrescription] = useState(false);
+  const [prescriptionModalAppointment, setPrescriptionModalAppointment] =
+    useState(null);
 
   const [diagnosis, setDiagnosis] = useState("");
   const [medicines, setMedicines] = useState([emptyMedicine()]);
@@ -314,6 +320,42 @@ function DoctorAppointments() {
     setMedicines([emptyMedicine()]);
   };
 
+  const parseMedications = (value) => {
+    try {
+      const parsed =
+        typeof value === "string" ? JSON.parse(value) : value;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const openViewPrescription = async (appointment) => {
+    setPrescriptionModalAppointment(appointment);
+    setViewingPrescription(null);
+    setLoadingPrescription(true);
+
+    try {
+      const response = await api.get(
+        `/prescriptions/appointment/${appointment.id}`
+      );
+      setViewingPrescription(response.data);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ||
+          "Unable to load prescription details. Please try again."
+      );
+      setPrescriptionModalAppointment(null);
+    } finally {
+      setLoadingPrescription(false);
+    }
+  };
+
+  const closeViewPrescription = () => {
+    setPrescriptionModalAppointment(null);
+    setViewingPrescription(null);
+  };
+
   const updateMedicine = (index, field, value) => {
     setMedicines((previous) =>
       previous.map((medicine, i) =>
@@ -522,26 +564,26 @@ function DoctorAppointments() {
       )}
 
       {appointment.status === "Completed" && (
-        <button
-          type="button"
-          disabled={
-            appointment.hasPrescription ||
-            appointment.prescriptionCheckFailed
-          }
-          onClick={() => openPrescriptionForm(appointment)}
-          title={
-            appointment.hasPrescription
-              ? "Prescription already created"
-              : "Write prescription"
-          }
-          className="rounded-lg bg-cyan-50 p-2 text-cyan-600 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {appointment.hasPrescription ? (
-            <CheckCircle size={17} />
-          ) : (
+        appointment.hasPrescription ? (
+          <button
+            type="button"
+            onClick={() => openViewPrescription(appointment)}
+            title="View prescription"
+            className="rounded-lg bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100"
+          >
+            <FileText size={17} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={appointment.prescriptionCheckFailed}
+            onClick={() => openPrescriptionForm(appointment)}
+            title="Write prescription"
+            className="rounded-lg bg-cyan-50 p-2 text-cyan-600 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
             <Pill size={17} />
-          )}
-        </button>
+          </button>
+        )
       )}
     </div>
   );
@@ -897,9 +939,21 @@ function DoctorAppointments() {
                     Retry prescription status check
                   </button>
                 ) : selectedAppointment.hasPrescription ? (
-                  <div className="rounded-xl bg-green-50 p-4 text-center text-sm font-semibold text-green-700">
-                    <CheckCircle className="mr-2 inline" size={18} />
-                    Prescription already created
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-center text-sm font-semibold text-emerald-700">
+                      <CheckCircle className="mr-2 inline" size={17} />
+                      Prescription already issued
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openViewPrescription(selectedAppointment)
+                      }
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                    >
+                      <FileText size={17} />
+                      View Prescription
+                    </button>
                   </div>
                 ) : (
                   <button
@@ -1169,6 +1223,194 @@ function DoctorAppointments() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Prescription Modal */}
+      {prescriptionModalAppointment && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4">
+          <div className="my-6 w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <FileText size={22} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">
+                    Prescription Details
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Appointment #{prescriptionModalAppointment.id} ·{" "}
+                    {prescriptionModalAppointment.patient}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {viewingPrescription && (
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    title="Print prescription"
+                    className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition hover:bg-slate-50"
+                  >
+                    <Printer size={18} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={closeViewPrescription}
+                  className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100"
+                  aria-label="Close prescription"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-[75vh] space-y-6 overflow-y-auto p-6">
+              {loadingPrescription ? (
+                <div className="flex min-h-[220px] flex-col items-center justify-center">
+                  <RefreshCw
+                    size={28}
+                    className="animate-spin text-emerald-600"
+                  />
+                  <p className="mt-3 text-sm font-medium text-slate-500">
+                    Loading prescription...
+                  </p>
+                </div>
+              ) : viewingPrescription ? (
+                <>
+                  {/* Patient & Summary Meta */}
+                  <div className="grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-3">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-400">
+                        Patient
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-slate-800">
+                        {prescriptionModalAppointment.patient}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-400">
+                        Prescription #
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-emerald-700">
+                        #{viewingPrescription.prescriptionId}
+                      </p>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <p className="text-xs font-semibold text-slate-400">
+                        Prescribed On
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-slate-800">
+                        {formatDate(
+                          viewingPrescription.prescribedAt?.slice(0, 10) ||
+                            prescriptionModalAppointment.date
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Diagnosis */}
+                  <div>
+                    <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-700">
+                      <Stethoscope size={16} className="text-cyan-600" />
+                      Diagnosis
+                    </h3>
+                    <div className="mt-2 rounded-xl border border-cyan-100 bg-cyan-50/70 p-4 text-sm font-medium text-cyan-950">
+                      {viewingPrescription.diagnosis ||
+                        "No diagnosis specified."}
+                    </div>
+                  </div>
+
+                  {/* Prescribed Medicines */}
+                  <div>
+                    <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-700">
+                      <Pill size={16} className="text-emerald-600" />
+                      Prescribed Medicines
+                    </h3>
+                    <div className="mt-2 overflow-x-auto rounded-xl border border-slate-100">
+                      <table className="w-full min-w-[550px] text-left text-sm">
+                        <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
+                          <tr>
+                            <th className="px-4 py-3">Medicine</th>
+                            <th className="px-4 py-3">Dosage</th>
+                            <th className="px-4 py-3">Frequency</th>
+                            <th className="px-4 py-3">Duration</th>
+                            <th className="px-4 py-3">Instructions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {parseMedications(
+                            viewingPrescription.medications
+                          ).map((med, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50/50">
+                              <td className="px-4 py-3 font-semibold text-slate-800">
+                                {med.medicineName ||
+                                  med.medicine ||
+                                  "—"}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {med.dosage || "—"}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {med.frequency || "—"}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {med.duration || "—"}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {med.instructions || "—"}
+                              </td>
+                            </tr>
+                          ))}
+                          {parseMedications(viewingPrescription.medications)
+                            .length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={5}
+                                className="p-4 text-center text-sm text-slate-400"
+                              >
+                                No medicines recorded.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Instructions */}
+                  {viewingPrescription.instructions && (
+                    <div>
+                      <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-700">
+                        <FileText size={16} className="text-slate-600" />
+                        Doctor's Advice & Instructions
+                      </h3>
+                      <div className="mt-2 whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+                        {viewingPrescription.instructions}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="p-6 text-center text-sm text-slate-500">
+                  No prescription details available.
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end border-t border-slate-100 bg-slate-50/50 p-4">
+              <button
+                type="button"
+                onClick={closeViewPrescription}
+                className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

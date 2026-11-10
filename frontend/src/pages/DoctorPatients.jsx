@@ -14,6 +14,11 @@ import {
   Clock,
   MapPin,
   RefreshCw,
+  FileText,
+  Pill,
+  Stethoscope,
+  Printer,
+  CheckCircle,
 } from "lucide-react";
 
 import api from "../services/api";
@@ -23,6 +28,11 @@ function DoctorPatients() {
   const [search, setSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("All");
   const [selectedPatient, setSelectedPatient] = useState(null);
+
+  const [activeTab, setActiveTab] = useState("overview"); // "overview" | "prescriptions"
+  const [patientPrescriptions, setPatientPrescriptions] = useState([]);
+  const [loadingPrescriptions, setLoadingPrescriptions] = useState(false);
+  const [prescriptionsError, setPrescriptionsError] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -69,6 +79,46 @@ function DoctorPatients() {
     }
 
     return age >= 0 ? age : "N/A";
+  };
+
+  const parseMedications = (value) => {
+    try {
+      const parsed =
+        typeof value === "string" ? JSON.parse(value) : value;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const fetchPatientPrescriptions = async (patientId) => {
+    if (!patientId) return;
+
+    try {
+      setLoadingPrescriptions(true);
+      setPrescriptionsError("");
+
+      const response = await api.get(`/prescriptions/patient/${patientId}`);
+      setPatientPrescriptions(
+        Array.isArray(response.data) ? response.data : []
+      );
+    } catch (err) {
+      console.error("Failed to load patient prescriptions:", err);
+      setPrescriptionsError(
+        err.response?.data?.message ||
+          "Unable to load prescriptions for this patient."
+      );
+    } finally {
+      setLoadingPrescriptions(false);
+    }
+  };
+
+  const handleOpenPatient = (patient, tab = "overview") => {
+    setSelectedPatient(patient);
+    setActiveTab(tab);
+    setPatientPrescriptions([]);
+    setPrescriptionsError("");
+    fetchPatientPrescriptions(patient.patientId);
   };
 
   // ==========================================
@@ -398,13 +448,23 @@ function DoctorPatients() {
                   </td>
 
                   <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => setSelectedPatient(patient)}
-                      title="View patient details"
-                      className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100"
-                    >
-                      <Eye size={18} />
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleOpenPatient(patient, "overview")}
+                        title="View patient details"
+                        className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100"
+                      >
+                        <Eye size={18} />
+                      </button>
+
+                      <button
+                        onClick={() => handleOpenPatient(patient, "prescriptions")}
+                        title="View patient prescriptions"
+                        className="rounded-lg bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100"
+                      >
+                        <FileText size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -443,126 +503,328 @@ function DoctorPatients() {
       {/* PATIENT DETAILS MODAL */}
       {selectedPatient && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
             {/* MODAL HEADER */}
             <div className="flex items-center justify-between border-b border-slate-100 p-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  Patient Details
+                  {selectedPatient.name}
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  {selectedPatient.id}
+                  {selectedPatient.id} · {selectedPatient.gender}
                 </p>
               </div>
 
+              <div className="flex items-center gap-2">
+                {activeTab === "prescriptions" &&
+                  patientPrescriptions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      title="Print prescriptions"
+                      className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition hover:bg-slate-50"
+                    >
+                      <Printer size={18} />
+                    </button>
+                  )}
+                <button
+                  onClick={() => setSelectedPatient(null)}
+                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                  aria-label="Close patient details"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* TAB SELECTOR */}
+            <div className="flex border-b border-slate-100 bg-slate-50/50 px-6 pt-3">
               <button
-                onClick={() => setSelectedPatient(null)}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-                aria-label="Close patient details"
+                type="button"
+                onClick={() => setActiveTab("overview")}
+                className={`flex items-center gap-2 border-b-2 px-4 pb-3 text-sm font-semibold transition ${
+                  activeTab === "overview"
+                    ? "border-cyan-600 text-cyan-700"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
               >
-                <X size={20} />
+                <UserRound size={16} />
+                Patient Information
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("prescriptions");
+                  fetchPatientPrescriptions(selectedPatient.patientId);
+                }}
+                className={`flex items-center gap-2 border-b-2 px-4 pb-3 text-sm font-semibold transition ${
+                  activeTab === "prescriptions"
+                    ? "border-emerald-600 text-emerald-700"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <FileText size={16} />
+                <span>Prescriptions</span>
+                {patientPrescriptions.length > 0 && (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                    {patientPrescriptions.length}
+                  </span>
+                )}
               </button>
             </div>
 
             {/* MODAL BODY */}
             <div className="p-6">
-              {/* PATIENT BASIC INFORMATION */}
-              <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-50 text-2xl font-bold text-cyan-700">
-                  {selectedPatient.name.charAt(0).toUpperCase()}
-                </div>
+              {activeTab === "overview" ? (
+                <>
+                  {/* PATIENT BASIC INFORMATION */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-50 text-2xl font-bold text-cyan-700">
+                      {selectedPatient.name.charAt(0).toUpperCase()}
+                    </div>
 
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">
+                        {selectedPatient.name}
+                      </h3>
+
+                      <p className="text-sm text-slate-500">
+                        {selectedPatient.age === "N/A"
+                          ? "Age unavailable"
+                          : `${selectedPatient.age} years`}{" "}
+                        · {selectedPatient.gender}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* PATIENT STATISTICS */}
+                  <div className="mt-7 grid grid-cols-2 gap-5 sm:grid-cols-3">
+                    <div>
+                      <p className="text-xs text-slate-400">Patient ID</p>
+                      <p className="mt-1 font-semibold text-slate-800">
+                        {selectedPatient.patientId}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">Blood Group</p>
+                      <p className="mt-1 font-semibold text-slate-800">
+                        {selectedPatient.bloodGroup}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">Last Visit</p>
+                      <p className="mt-1 font-semibold text-slate-800">
+                        {selectedPatient.lastVisit}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">
+                        Total Appointments
+                      </p>
+                      <p className="mt-1 font-semibold text-slate-800">
+                        {selectedPatient.totalAppointments}
+                      </p>
+                    </div>
+
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-400">
+                        Recent Consultation
+                      </p>
+                      <p className="mt-1 font-semibold text-slate-800">
+                        {selectedPatient.condition}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* CONTACT INFORMATION */}
+                  <div className="mt-7 space-y-4 border-t border-slate-100 pt-5">
+                    <div className="flex items-center gap-3">
+                      <Phone size={18} className="shrink-0 text-cyan-600" />
+                      <span className="text-sm text-slate-600">
+                        {selectedPatient.phone}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Mail size={18} className="shrink-0 text-cyan-600" />
+                      <span className="break-all text-sm text-slate-600">
+                        {selectedPatient.email}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <MapPin size={18} className="shrink-0 text-cyan-600" />
+                      <span className="text-sm text-slate-600">
+                        {selectedPatient.address}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Clock size={18} className="shrink-0 text-cyan-600" />
+                      <span className="text-sm text-slate-600">
+                        {selectedPatient.totalAppointments} appointments recorded
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* PRESCRIPTIONS TAB */
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">
-                    {selectedPatient.name}
-                  </h3>
+                  {loadingPrescriptions ? (
+                    <div className="flex min-h-[220px] flex-col items-center justify-center">
+                      <RefreshCw
+                        size={28}
+                        className="animate-spin text-emerald-600"
+                      />
+                      <p className="mt-3 text-sm font-medium text-slate-500">
+                        Loading patient prescriptions...
+                      </p>
+                    </div>
+                  ) : prescriptionsError ? (
+                    <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
+                      <p className="text-sm text-red-600">
+                        {prescriptionsError}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          fetchPatientPrescriptions(
+                            selectedPatient.patientId
+                          )
+                        }
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
+                      >
+                        <RefreshCw size={14} />
+                        Retry
+                      </button>
+                    </div>
+                  ) : patientPrescriptions.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <FileText
+                        size={40}
+                        className="mx-auto text-slate-300"
+                      />
+                      <p className="mt-3 font-semibold text-slate-700">
+                        No Prescriptions Found
+                      </p>
+                      <p className="mt-1 text-sm text-slate-400">
+                        There are no recorded prescriptions for this patient
+                        yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      {patientPrescriptions.map((prescription) => (
+                        <div
+                          key={prescription.prescriptionId}
+                          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                        >
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                                Prescription #{prescription.prescriptionId}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                Appointment #{prescription.appointmentId}
+                              </span>
+                            </div>
+                            <span className="text-xs font-medium text-slate-500">
+                              {formatDate(
+                                prescription.prescribedAt?.slice(0, 10)
+                              )}
+                            </span>
+                          </div>
 
-                  <p className="text-sm text-slate-500">
-                    {selectedPatient.age === "N/A"
-                      ? "Age unavailable"
-                      : `${selectedPatient.age} years`}{" "}
-                    · {selectedPatient.gender}
-                  </p>
+                          {prescription.diagnosis && (
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                Diagnosis
+                              </p>
+                              <p className="mt-1 rounded-xl border border-cyan-100 bg-cyan-50/70 p-3 text-sm font-medium text-cyan-900">
+                                {prescription.diagnosis}
+                              </p>
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                              Prescribed Medications
+                            </p>
+                            <div className="overflow-x-auto rounded-xl border border-slate-100">
+                              <table className="w-full min-w-[500px] text-left text-xs">
+                                <thead className="bg-slate-50 uppercase font-semibold text-slate-500">
+                                  <tr>
+                                    <th className="px-3 py-2">Medicine</th>
+                                    <th className="px-3 py-2">Dosage</th>
+                                    <th className="px-3 py-2">Frequency</th>
+                                    <th className="px-3 py-2">Duration</th>
+                                    <th className="px-3 py-2">Instructions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {parseMedications(
+                                    prescription.medications
+                                  ).map((med, idx) => (
+                                    <tr
+                                      key={idx}
+                                      className="hover:bg-slate-50/50"
+                                    >
+                                      <td className="px-3 py-2 font-semibold text-slate-800">
+                                        {med.medicineName ||
+                                          med.medicine ||
+                                          "—"}
+                                      </td>
+                                      <td className="px-3 py-2 text-slate-600">
+                                        {med.dosage || "—"}
+                                      </td>
+                                      <td className="px-3 py-2 text-slate-600">
+                                        {med.frequency || "—"}
+                                      </td>
+                                      <td className="px-3 py-2 text-slate-600">
+                                        {med.duration || "—"}
+                                      </td>
+                                      <td className="px-3 py-2 text-slate-600">
+                                        {med.instructions || "—"}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {parseMedications(
+                                    prescription.medications
+                                  ).length === 0 && (
+                                    <tr>
+                                      <td
+                                        colSpan={5}
+                                        className="p-3 text-center text-slate-400"
+                                      >
+                                        No medications listed.
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {prescription.instructions && (
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                Instructions & Advice
+                              </p>
+                              <p className="mt-1 whitespace-pre-wrap rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
+                                {prescription.instructions}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              {/* PATIENT STATISTICS */}
-              <div className="mt-7 grid grid-cols-2 gap-5">
-                <div>
-                  <p className="text-xs text-slate-400">Patient ID</p>
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {selectedPatient.patientId}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-slate-400">Blood Group</p>
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {selectedPatient.bloodGroup}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-slate-400">Last Visit</p>
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {selectedPatient.lastVisit}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-slate-400">
-                    Total Appointments
-                  </p>
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {selectedPatient.totalAppointments}
-                  </p>
-                </div>
-
-                <div className="col-span-2">
-                  <p className="text-xs text-slate-400">
-                    Recent Consultation
-                  </p>
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {selectedPatient.condition}
-                  </p>
-                </div>
-              </div>
-
-              {/* CONTACT INFORMATION */}
-              <div className="mt-7 space-y-4 border-t border-slate-100 pt-5">
-                <div className="flex items-center gap-3">
-                  <Phone size={18} className="shrink-0 text-cyan-600" />
-
-                  <span className="text-sm text-slate-600">
-                    {selectedPatient.phone}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Mail size={18} className="shrink-0 text-cyan-600" />
-
-                  <span className="break-all text-sm text-slate-600">
-                    {selectedPatient.email}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <MapPin size={18} className="shrink-0 text-cyan-600" />
-
-                  <span className="text-sm text-slate-600">
-                    {selectedPatient.address}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Clock size={18} className="shrink-0 text-cyan-600" />
-
-                  <span className="text-sm text-slate-600">
-                    {selectedPatient.totalAppointments} appointments recorded
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

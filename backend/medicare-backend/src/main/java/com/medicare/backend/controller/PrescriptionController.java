@@ -53,31 +53,77 @@ public class PrescriptionController {
     }
 
     // ==========================================
-    // GET PRESCRIPTION BY ID (ADMIN ONLY)
+    // GET PRESCRIPTION BY ID (ADMIN & DOCTOR)
     // ==========================================
 
     @GetMapping("/{prescriptionId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<PrescriptionResponseDTO> getPrescriptionById(
-            @PathVariable Long prescriptionId) {
+            @PathVariable Long prescriptionId,
+            Authentication authentication) {
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         return ResponseEntity.ok(
                 prescriptionService.getPrescriptionById(
-                        prescriptionId));
+                        prescriptionId,
+                        authentication.getName(),
+                        isAdmin));
     }
 
     // ==========================================
-    // GET PRESCRIPTION BY APPOINTMENT (ADMIN ONLY)
+    // GET PRESCRIPTION BY APPOINTMENT (ADMIN & DOCTOR)
     // ==========================================
 
     @GetMapping("/appointment/{appointmentId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<PrescriptionResponseDTO> getPrescriptionByAppointmentId(
-            @PathVariable Long appointmentId) {
+            @PathVariable Long appointmentId,
+            Authentication authentication) {
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         return ResponseEntity.ok(
                 prescriptionService.getPrescriptionByAppointmentId(
-                        appointmentId));
+                        appointmentId,
+                        authentication.getName(),
+                        isAdmin));
+    }
+
+    // ==========================================
+    // GET PRESCRIPTIONS BY PATIENT ID (ADMIN & DOCTOR)
+    // ==========================================
+
+    @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
+    public ResponseEntity<List<PrescriptionResponseDTO>> getPrescriptionsByPatientId(
+            @PathVariable Long patientId,
+            Authentication authentication) {
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        return ResponseEntity.ok(
+                prescriptionService.getPrescriptionsByPatientId(
+                        patientId,
+                        authentication.getName(),
+                        isAdmin));
+    }
+
+    // ==========================================
+    // GET MY WRITTEN PRESCRIPTIONS (DOCTOR ONLY)
+    // ==========================================
+
+    @GetMapping("/my-doctor")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<List<PrescriptionResponseDTO>> getMyDoctorPrescriptions(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                prescriptionService.getMyDoctorPrescriptions(
+                        authentication.getName()));
     }
 
     // ==========================================

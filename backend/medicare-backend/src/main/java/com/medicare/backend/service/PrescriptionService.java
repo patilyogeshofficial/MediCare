@@ -102,6 +102,36 @@ public class PrescriptionService {
         return convertToDTO(findPrescription(prescriptionId));
     }
 
+    // Get prescription by ID with authorization check
+    public PrescriptionResponseDTO getPrescriptionById(
+            Long prescriptionId,
+            String authenticatedEmail,
+            boolean isAdmin) {
+
+        Prescription prescription = findPrescription(prescriptionId);
+
+        if (!isAdmin) {
+            User user = userRepository.findByEmail(
+                    authenticatedEmail.trim().toLowerCase())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "User not found"));
+
+            Doctor doctor = doctorRepository.findByUserId(user.getUserId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Doctor profile not found"));
+
+            Appointment appointment = validateAppointment(prescription.getAppointmentId());
+
+            if (!doctor.getDoctorId().equals(appointment.getDoctorId())) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "You are not allowed to access this prescription");
+            }
+        }
+
+        return convertToDTO(prescription);
+    }
+
     // Get prescription by appointment ID
     public PrescriptionResponseDTO getPrescriptionByAppointmentId(
             Long appointmentId) {
@@ -112,6 +142,117 @@ public class PrescriptionService {
                         HttpStatus.NOT_FOUND,
                         "Prescription not found for appointment ID: "
                                 + appointmentId));
+    }
+
+    // Get prescription by appointment ID with authorization check
+    public PrescriptionResponseDTO getPrescriptionByAppointmentId(
+            Long appointmentId,
+            String authenticatedEmail,
+            boolean isAdmin) {
+
+        Appointment appointment = validateAppointment(appointmentId);
+
+        if (!isAdmin) {
+            User user = userRepository.findByEmail(
+                    authenticatedEmail.trim().toLowerCase())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "User not found"));
+
+            Doctor doctor = doctorRepository.findByUserId(user.getUserId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Doctor profile not found"));
+
+            if (!doctor.getDoctorId().equals(appointment.getDoctorId())) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "You are not allowed to access this appointment's prescription");
+            }
+        }
+
+        return prescriptionRepository.findByAppointmentId(appointmentId)
+                .map(this::convertToDTO)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Prescription not found for appointment ID: "
+                                + appointmentId));
+    }
+
+    // Get prescriptions by patient ID (Admin or Doctor assigned to patient)
+    public List<PrescriptionResponseDTO> getPrescriptionsByPatientId(
+            Long patientId,
+            String authenticatedEmail,
+            boolean isAdmin) {
+
+        patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found with ID: " + patientId));
+
+        if (!isAdmin) {
+            User user = userRepository.findByEmail(
+                    authenticatedEmail.trim().toLowerCase())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "User not found"));
+
+            Doctor doctor = doctorRepository.findByUserId(user.getUserId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Doctor profile not found"));
+
+            boolean hasAppointment = appointmentRepository.findByDoctorId(doctor.getDoctorId())
+                    .stream()
+                    .anyMatch(a -> patientId.equals(a.getPatientId()));
+
+            if (!hasAppointment) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "You are not authorized to view prescriptions for this patient");
+            }
+        }
+
+        List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
+
+        if (appointments.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> appointmentIds = appointments.stream()
+                .map(Appointment::getAppointmentId)
+                .toList();
+
+        return prescriptionRepository.findByAppointmentIdIn(appointmentIds)
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    // Get all prescriptions created for appointments belonging to the logged-in doctor
+    public List<PrescriptionResponseDTO> getMyDoctorPrescriptions(
+            String authenticatedEmail) {
+
+        User user = userRepository.findByEmail(
+                authenticatedEmail.trim().toLowerCase())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
+        Doctor doctor = doctorRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Doctor profile not found"));
+
+        List<Appointment> appointments =
+                appointmentRepository.findByDoctorId(doctor.getDoctorId());
+
+        if (appointments.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> appointmentIds = appointments.stream()
+                .map(Appointment::getAppointmentId)
+                .toList();
+
+        return prescriptionRepository.findByAppointmentIdIn(appointmentIds)
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
     }
 
     // Create prescription - DOCTOR only
