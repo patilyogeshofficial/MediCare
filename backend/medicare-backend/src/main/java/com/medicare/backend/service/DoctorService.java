@@ -62,6 +62,7 @@ private PublicDoctorResponseDTO convertToPublicDTO(Doctor doctor) {
 
     return new PublicDoctorResponseDTO(
             doctor.getDoctorId(),
+            user.getUserId(),
             user.getFullName(),
             specialization.getSpecializationName(),
             doctor.getQualification(),

@@ -230,11 +230,23 @@ function AdminDoctors() {
 
       const formattedDoctors = doctorData.map((doctor) => {
 
-        const user = userMap.get(Number(doctor.userId));
+        const user =
+          userMap.get(Number(doctor.userId)) ||
+          users.find(
+            (u) =>
+              u.role === "DOCTOR" &&
+              (String(u.fullName || "").trim().toLowerCase() ===
+                String(doctor.fullName || "").trim().toLowerCase() ||
+                (doctor.email &&
+                  String(u.email || "").trim().toLowerCase() ===
+                    String(doctor.email || "").trim().toLowerCase()))
+          );
 
         return {
 
           ...doctor,
+
+          userId: doctor.userId || user?.userId,
 
           fullName:
 

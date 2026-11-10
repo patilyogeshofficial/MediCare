@@ -1,5 +1,8 @@
 package com.medicare.backend.security;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -75,7 +78,27 @@ public class JwtService {
     // Generate signing key
     private SecretKey getSigningKey() {
 
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException("JWT secret key must not be blank");
+        }
+
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secretKey.trim());
+        } catch (Exception e) {
+            keyBytes = secretKey.trim().getBytes(StandardCharsets.UTF_8);
+        }
+
+        // The HMAC-SHA algorithm requires at least 256 bits (32 bytes).
+        // If the key is shorter than 32 bytes, derive a 256-bit key via SHA-256.
+        if (keyBytes.length < 32) {
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                keyBytes = md.digest(secretKey.trim().getBytes(StandardCharsets.UTF_8));
+            } catch (NoSuchAlgorithmException e) {
+                throw new IllegalStateException("SHA-256 algorithm not available", e);
+            }
+        }
 
         return Keys.hmacShaKeyFor(keyBytes);
     }

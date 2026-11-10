@@ -6,11 +6,15 @@ import java.math.BigDecimal;
 public class PublicDoctorResponseDTO {
 
     private Long doctorId;
+    private Long userId;
     private String fullName;
     private String specializationName;
     private String qualification;
     private Integer experienceYears;
     private BigDecimal consultationFee;
+
+    public PublicDoctorResponseDTO() {
+    }
 
     public PublicDoctorResponseDTO(
             Long doctorId,
@@ -20,7 +24,20 @@ public class PublicDoctorResponseDTO {
             Integer experienceYears,
             BigDecimal consultationFee) {
 
+        this(doctorId, null, fullName, specializationName, qualification, experienceYears, consultationFee);
+    }
+
+    public PublicDoctorResponseDTO(
+            Long doctorId,
+            Long userId,
+            String fullName,
+            String specializationName,
+            String qualification,
+            Integer experienceYears,
+            BigDecimal consultationFee) {
+
         this.doctorId = doctorId;
+        this.userId = userId;
         this.fullName = fullName;
         this.specializationName = specializationName;
         this.qualification = qualification;
@@ -30,6 +47,14 @@ public class PublicDoctorResponseDTO {
 
     public Long getDoctorId() {
         return doctorId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getFullName() {
