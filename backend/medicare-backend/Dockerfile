@@ -14,14 +14,11 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Install temporary diagnostic tools
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends netcat-openbsd dnsutils openssl \
-    && rm -rf /var/lib/apt/lists/*
+# Configure optimized JVM memory flags for Render free tier (512 MB RAM)
+ENV JAVA_TOOL_OPTIONS="-XX:+UseSerialGC -Xss512k -XX:MaxRAMPercentage=75 -XX:MaxMetaspaceSize=128m"
 
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-# Test DNS, TCP and PostgreSQL SSL before starting backend
-ENTRYPOINT ["sh", "-c", "echo '=== SUPABASE DNS TEST ==='; getent hosts aws-0-ap-southeast-1.pooler.supabase.com || true; echo '=== SUPABASE TCP TEST ==='; nc -vz -w 5 aws-0-ap-southeast-1.pooler.supabase.com 6543 || true; echo '=== POSTGRESQL SSL TEST ==='; timeout 15 openssl s_client -starttls postgres -connect aws-0-ap-southeast-1.pooler.supabase.com:6543 -servername aws-0-ap-southeast-1.pooler.supabase.com -brief </dev/null || true; echo '=== STARTING MEDICARE BACKEND ==='; exec java -jar app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

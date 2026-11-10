@@ -80,15 +80,12 @@ public class PatientService {
                                         "User must have PATIENT role");
                 }
 
-                if (patientRepository.existsByUserId(request.getUserId())) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.CONFLICT,
-                                        "Patient profile already exists for this user");
-                }
-
-                Patient patient = new Patient();
-
-                patient.setUserId(request.getUserId());
+                Patient patient = patientRepository.findByUserId(request.getUserId())
+                                .orElseGet(() -> {
+                                        Patient newPatient = new Patient();
+                                        newPatient.setUserId(request.getUserId());
+                                        return newPatient;
+                                });
                 patient.setDateOfBirth(request.getDateOfBirth());
                 patient.setGender(request.getGender());
                 patient.setPhone(request.getPhone());
