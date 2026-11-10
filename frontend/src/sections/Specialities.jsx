@@ -11,9 +11,12 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+import { Link } from "react-router-dom";
+
 const specialities = [
   {
     name: "Cardiology",
+    slug: "cardiology",
     description:
       "Specialized care for heart health and cardiovascular conditions.",
     icon: Heart,
@@ -21,6 +24,7 @@ const specialities = [
   },
   {
     name: "Neurology",
+    slug: "neurology",
     description:
       "Expert care for brain, spine and nervous system conditions.",
     icon: Brain,
@@ -28,6 +32,7 @@ const specialities = [
   },
   {
     name: "Orthopedics",
+    slug: "orthopedics",
     description:
       "Treatment and care for bones, joints and muscles.",
     icon: Bone,
@@ -35,6 +40,7 @@ const specialities = [
   },
   {
     name: "Dermatology",
+    slug: "dermatology",
     description:
       "Professional care for skin, hair and nail conditions.",
     icon: ScanFace,
@@ -42,6 +48,7 @@ const specialities = [
   },
   {
     name: "Pediatrics",
+    slug: "pediatrics",
     description:
       "Dedicated healthcare for infants, children and adolescents.",
     icon: Baby,
@@ -49,6 +56,7 @@ const specialities = [
   },
   {
     name: "General Medicine",
+    slug: "general-medicine",
     description:
       "Primary healthcare, diagnosis and preventive care.",
     icon: Stethoscope,
@@ -56,6 +64,7 @@ const specialities = [
   },
   {
     name: "Gynecology",
+    slug: "gynecology",
     description:
       "Healthcare services focused on women's reproductive health.",
     icon: Venus,
@@ -63,6 +72,7 @@ const specialities = [
   },
   {
     name: "Ophthalmology",
+    slug: "ophthalmology",
     description:
       "Specialized medical care for eye health and vision.",
     icon: Eye,
@@ -71,22 +81,6 @@ const specialities = [
 ];
 
 function Specialities() {
-  // Navigate to the doctors section
-  const handleExploreDoctors = (event) => {
-    event.preventDefault();
-
-    const doctorsSection = document.getElementById("doctors");
-
-    if (doctorsSection) {
-      doctorsSection.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-
-      window.history.replaceState(null, "", "#doctors");
-    }
-  };
-
   return (
     <section
       id="services"
@@ -117,7 +111,7 @@ function Specialities() {
 
             return (
               <div
-                key={speciality.name}
+                key={speciality.slug}
                 className="group rounded-2xl border border-slate-100 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-cyan-200 hover:shadow-xl"
               >
                 {/* SPECIALITY ICON */}
@@ -138,14 +132,13 @@ function Specialities() {
                 </p>
 
                 {/* EXPLORE DEPARTMENT */}
-                <a
-                  href="#doctors"
-                  onClick={handleExploreDoctors}
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
+                <Link
+                  to={`/services/${speciality.slug}`}
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3"
                 >
                   Explore Department
                   <ArrowRight size={16} aria-hidden="true" />
-                </a>
+                </Link>
               </div>
             );
           })}
@@ -153,14 +146,13 @@ function Specialities() {
 
         {/* BOTTOM CTA */}
         <div className="mt-12 text-center">
-          <a
-            href="#doctors"
-            onClick={handleExploreDoctors}
+          <Link
+            to="/doctors"
             className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-7 py-4 font-bold text-white transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
           >
             Explore All Specialities
             <ArrowRight size={18} aria-hidden="true" />
-          </a>
+          </Link>
         </div>
 
       </div>

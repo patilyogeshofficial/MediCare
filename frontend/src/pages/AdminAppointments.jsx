@@ -12,6 +12,8 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
+  FileText,
+  Lock,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../services/api";
@@ -34,7 +36,13 @@ const statusStyle = {
 
 const formatStatus = (status) => {
   if (!status) return "Unknown";
-  return status.charAt(0) + status.slice(1).toLowerCase();
+
+  const normalized = String(status).toUpperCase();
+
+  return (
+    normalized.charAt(0) +
+    normalized.slice(1).toLowerCase()
+  );
 };
 
 const formatDate = (date) => {
@@ -54,7 +62,7 @@ const formatDate = (date) => {
 const formatTime = (time) => {
   if (!time) return "Not available";
 
-  const [hours, minutes] = time.split(":");
+  const [hours, minutes] = String(time).split(":");
   const parsed = new Date();
 
   parsed.setHours(Number(hours), Number(minutes), 0, 0);
@@ -74,10 +82,13 @@ function AdminAppointments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState(null);
+
   const [updatingId, setUpdatingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
+  // Fetch appointments and related details.
   const fetchAppointments = async (showLoader = true) => {
     if (showLoader) {
       setLoading(true);
@@ -91,17 +102,27 @@ function AdminAppointments() {
         patientsResponse,
         usersResponse,
         doctorsResponse,
+        prescriptionsResponse,
       ] = await Promise.all([
         api.get("/appointments"),
         api.get("/patients"),
         api.get("/users"),
         api.get("/doctors"),
+        api.get("/prescriptions"),
       ]);
 
       const appointmentData = appointmentsResponse.data || [];
       const patients = patientsResponse.data || [];
       const users = usersResponse.data || [];
       const doctors = doctorsResponse.data || [];
+      const prescriptions = prescriptionsResponse.data || [];
+
+      // Find appointments that already have prescriptions.
+      const prescriptionAppointmentIds = new Set(
+        prescriptions.map((prescription) =>
+          Number(prescription.appointmentId)
+        )
+      );
 
       const patientUserMap = new Map(
         patients.map((patient) => [
@@ -124,20 +145,22 @@ function AdminAppointments() {
         ])
       );
 
-      const formatted = appointmentData.map((appointment) => {
-        const patientUserId = patientUserMap.get(
-          Number(appointment.patientId)
-        );
+      const formatted = appointmentData.map((appointment) => ({
+        ...appointment,
 
-        return {
-          ...appointment,
-          patientName:
-            userMap.get(patientUserId) || "Unknown Patient",
-          doctorName:
-            doctorMap.get(Number(appointment.doctorId)) ||
-            "Unknown Doctor",
-        };
-      });
+        patientName:
+          userMap.get(
+            patientUserMap.get(Number(appointment.patientId))
+          ) || "Unknown Patient",
+
+        doctorName:
+          doctorMap.get(Number(appointment.doctorId)) ||
+          "Unknown Doctor",
+
+        hasPrescription: prescriptionAppointmentIds.has(
+          Number(appointment.appointmentId)
+        ),
+      }));
 
       formatted.sort(
         (a, b) =>
@@ -147,16 +170,18 @@ function AdminAppointments() {
 
       setAppointments(formatted);
 
-      // Refresh the open modal with the latest appointment data.
-      if (selectedAppointment) {
-        const updatedSelected = formatted.find(
-          (item) =>
-            Number(item.appointmentId) ===
-            Number(selectedAppointment.appointmentId)
-        );
+      // Update the open modal with the latest appointment.
+      setSelectedAppointment((previous) => {
+        if (!previous) return null;
 
-        setSelectedAppointment(updatedSelected || null);
-      }
+        return (
+          formatted.find(
+            (item) =>
+              Number(item.appointmentId) ===
+              Number(previous.appointmentId)
+          ) || null
+        );
+      });
     } catch (error) {
       console.error("Appointments loading error:", error);
 
@@ -170,20 +195,20 @@ function AdminAppointments() {
     }
   };
 
+  // Initial fetch and automatic refresh.
   useEffect(() => {
     fetchAppointments();
 
-    // Refresh appointment data every 30 seconds.
     const interval = setInterval(() => {
       fetchAppointments(false);
     }, 30000);
 
     return () => clearInterval(interval);
 
-    // Initial fetch and polling only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Search and status filtering.
   const filteredAppointments = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
 
@@ -201,32 +226,52 @@ function AdminAppointments() {
 
       const matchesStatus =
         statusFilter === "ALL" ||
-        appointment.status?.toUpperCase() === statusFilter;
+        String(appointment.status || "").toUpperCase() ===
+          statusFilter;
 
       return matchesSearch && matchesStatus;
     });
   }, [appointments, searchTerm, statusFilter]);
 
+  // Calculate all appointment status counts.
   const statusCounts = useMemo(() => {
+    const getCount = (status) =>
+      appointments.filter(
+        (item) =>
+          String(item.status || "").toUpperCase() === status
+      ).length;
+
     return {
       total: appointments.length,
-      pending: appointments.filter(
-        (item) => item.status === "PENDING"
-      ).length,
-      confirmed: appointments.filter(
-        (item) => item.status === "CONFIRMED"
-      ).length,
-      completed: appointments.filter(
-        (item) => item.status === "COMPLETED"
-      ).length,
-      cancelled: appointments.filter(
-        (item) => item.status === "CANCELLED"
-      ).length,
+      pending: getCount("PENDING"),
+      confirmed: getCount("CONFIRMED"),
+      completed: getCount("COMPLETED"),
+      cancelled: getCount("CANCELLED"),
+      rejected: getCount("REJECTED"),
     };
   }, [appointments]);
 
+  // Check whether an appointment is finalized.
+  const isAppointmentFinalized = (appointment) =>
+    String(appointment?.status || "").toUpperCase() ===
+      "COMPLETED" &&
+    appointment?.hasPrescription === true;
+
+  // Update appointment status.
   const handleStatusUpdate = async (appointment, newStatus) => {
-    if (!newStatus || newStatus === appointment.status) return;
+    const currentStatus = String(
+      appointment.status || ""
+    ).toUpperCase();
+
+    if (!newStatus || newStatus === currentStatus) return;
+
+    // Protect completed appointments with prescriptions.
+    if (isAppointmentFinalized(appointment)) {
+      toast.error(
+        "This appointment is finalized because a prescription has been issued."
+      );
+      return;
+    }
 
     const confirmed = window.confirm(
       `Change appointment #${appointment.appointmentId} status to ${formatStatus(newStatus)}?`
@@ -240,7 +285,9 @@ function AdminAppointments() {
       await api.patch(
         `/appointments/${appointment.appointmentId}/status`,
         null,
-        { params: { status: newStatus } }
+        {
+          params: { status: newStatus },
+        }
       );
 
       toast.success("Appointment status updated.");
@@ -258,6 +305,7 @@ function AdminAppointments() {
     }
   };
 
+  // Delete appointment.
   const handleDelete = async (appointment) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete appointment #${appointment.appointmentId}? This action cannot be undone.`
@@ -275,18 +323,22 @@ function AdminAppointments() {
       setAppointments((previous) =>
         previous.filter(
           (item) =>
-            item.appointmentId !== appointment.appointmentId
+            Number(item.appointmentId) !==
+            Number(appointment.appointmentId)
         )
       );
 
-      if (
-        selectedAppointment?.appointmentId ===
-        appointment.appointmentId
-      ) {
-        setSelectedAppointment(null);
-      }
+      setSelectedAppointment((previous) =>
+        previous &&
+        Number(previous.appointmentId) ===
+          Number(appointment.appointmentId)
+          ? null
+          : previous
+      );
 
       toast.success("Appointment deleted successfully.");
+
+      await fetchAppointments(false);
     } catch (error) {
       console.error("Appointment delete error:", error);
 
@@ -305,15 +357,55 @@ function AdminAppointments() {
     }
   };
 
+  // Summary cards.
+  const summaryCards = [
+    {
+      label: "Total",
+      value: statusCounts.total,
+      icon: CalendarDays,
+      color: "bg-cyan-50 text-cyan-600",
+    },
+    {
+      label: "Pending",
+      value: statusCounts.pending,
+      icon: Clock,
+      color: "bg-orange-50 text-orange-600",
+    },
+    {
+      label: "Confirmed",
+      value: statusCounts.confirmed,
+      icon: CheckCircle,
+      color: "bg-green-50 text-green-600",
+    },
+    {
+      label: "Completed",
+      value: statusCounts.completed,
+      icon: CheckCircle,
+      color: "bg-blue-50 text-blue-600",
+    },
+    {
+      label: "Cancelled",
+      value: statusCounts.cancelled,
+      icon: AlertCircle,
+      color: "bg-red-50 text-red-600",
+    },
+    {
+      label: "Rejected",
+      value: statusCounts.rejected,
+      icon: X,
+      color: "bg-rose-50 text-rose-600",
+    },
+  ];
+
   return (
     <div className="space-y-6">
-
       {/* PAGE INTRO */}
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">
-            Appointments Management
+            Appointments
           </h1>
+
           <p className="mt-1 text-sm text-slate-500">
             View and manage hospital appointments.
           </p>
@@ -334,39 +426,8 @@ function AdminAppointments() {
       </div>
 
       {/* SUMMARY CARDS */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {[
-          {
-            label: "Total",
-            value: statusCounts.total,
-            icon: CalendarDays,
-            color: "bg-cyan-50 text-cyan-600",
-          },
-          {
-            label: "Pending",
-            value: statusCounts.pending,
-            icon: Clock,
-            color: "bg-orange-50 text-orange-600",
-          },
-          {
-            label: "Confirmed",
-            value: statusCounts.confirmed,
-            icon: CheckCircle,
-            color: "bg-green-50 text-green-600",
-          },
-          {
-            label: "Completed",
-            value: statusCounts.completed,
-            icon: CheckCircle,
-            color: "bg-blue-50 text-blue-600",
-          },
-          {
-            label: "Cancelled",
-            value: statusCounts.cancelled,
-            icon: AlertCircle,
-            color: "bg-red-50 text-red-600",
-          },
-        ].map((item) => {
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        {summaryCards.map((item) => {
           const Icon = item.icon;
 
           return (
@@ -379,6 +440,7 @@ function AdminAppointments() {
                   <p className="text-sm font-medium text-slate-500">
                     {item.label}
                   </p>
+
                   <p className="mt-2 text-2xl font-extrabold text-slate-900">
                     {loading ? "..." : item.value}
                   </p>
@@ -405,7 +467,9 @@ function AdminAppointments() {
             <input
               type="search"
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) =>
+                setSearchTerm(event.target.value)
+              }
               placeholder="Search ID, patient, doctor or reason..."
               className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-cyan-500"
             />
@@ -413,10 +477,13 @@ function AdminAppointments() {
 
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
+            onChange={(event) =>
+              setStatusFilter(event.target.value)
+            }
             className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:border-cyan-500"
           >
             <option value="ALL">All Statuses</option>
+
             {STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
                 {formatStatus(status)}
@@ -426,7 +493,8 @@ function AdminAppointments() {
         </div>
 
         <p className="mt-3 text-xs text-slate-500">
-          Showing {filteredAppointments.length} of {appointments.length} appointments
+          Showing {filteredAppointments.length} of{" "}
+          {appointments.length} appointments
         </p>
       </div>
 
@@ -436,8 +504,9 @@ function AdminAppointments() {
           <h3 className="font-bold text-slate-900">
             All Appointments
           </h3>
+
           <p className="mt-1 text-sm text-slate-500">
-            Manage appointment records and their status.
+            View appointment records and their status.
           </p>
         </div>
 
@@ -457,76 +526,110 @@ function AdminAppointments() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-5 py-12 text-center text-sm text-slate-500">
+                  <td
+                    colSpan="6"
+                    className="px-5 py-12 text-center text-sm text-slate-500"
+                  >
                     Loading appointments...
                   </td>
                 </tr>
               ) : filteredAppointments.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-5 py-12 text-center text-sm text-slate-500">
+                  <td
+                    colSpan="6"
+                    className="px-5 py-12 text-center text-sm text-slate-500"
+                  >
                     No appointments found.
                   </td>
                 </tr>
               ) : (
-                filteredAppointments.map((appointment) => (
-                  <tr
-                    key={appointment.appointmentId}
-                    className="transition hover:bg-slate-50"
-                  >
-                    <td className="px-5 py-4 text-sm font-bold text-cyan-700">
-                      #{appointment.appointmentId}
-                    </td>
+                filteredAppointments.map((appointment) => {
+                  const normalizedStatus = String(
+                    appointment.status || ""
+                  ).toUpperCase();
 
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-800">
-                      {appointment.patientName}
-                    </td>
+                  const finalized =
+                    isAppointmentFinalized(appointment);
 
-                    <td className="px-5 py-4 text-sm text-slate-600">
-                      {appointment.doctorName}
-                    </td>
+                  return (
+                    <tr
+                      key={appointment.appointmentId}
+                      className="transition hover:bg-slate-50"
+                    >
+                      <td className="px-5 py-4 text-sm font-bold text-cyan-700">
+                        #{appointment.appointmentId}
+                      </td>
 
-                    <td className="px-5 py-4 text-sm text-slate-600">
-                      <p>{formatDate(appointment.appointmentDate)}</p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {formatTime(appointment.appointmentTime)}
-                      </p>
-                    </td>
+                      <td className="px-5 py-4 text-sm font-semibold text-slate-800">
+                        {appointment.patientName}
+                      </td>
 
-                    <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                          statusStyle[appointment.status] ||
-                          "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-                        {formatStatus(appointment.status)}
-                      </span>
-                    </td>
+                      <td className="px-5 py-4 text-sm text-slate-600">
+                        {appointment.doctorName}
+                      </td>
 
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          title="View details"
-                          onClick={() => setSelectedAppointment(appointment)}
-                          className="rounded-lg bg-cyan-50 p-2 text-cyan-700 transition hover:bg-cyan-100"
-                        >
-                          <Eye size={17} />
-                        </button>
+                      <td className="px-5 py-4 text-sm text-slate-600">
+                        <p>
+                          {formatDate(appointment.appointmentDate)}
+                        </p>
 
-                        <button
-                          type="button"
-                          title="Delete appointment"
-                          disabled={deletingId === appointment.appointmentId}
-                          onClick={() => handleDelete(appointment)}
-                          className="rounded-lg bg-red-50 p-2 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-                        >
-                          <Trash2 size={17} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        <p className="mt-1 text-xs text-slate-400">
+                          {formatTime(appointment.appointmentTime)}
+                        </p>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col items-start gap-1.5">
+                          <span
+                            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                              statusStyle[normalizedStatus] ||
+                              "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {formatStatus(normalizedStatus)}
+                          </span>
+
+                          {finalized && (
+                            <span className="flex items-center gap-1 text-[11px] font-semibold text-green-700">
+                              <Lock size={12} />
+                              Finalized
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            title="View details"
+                            onClick={() =>
+                              setSelectedAppointment(appointment)
+                            }
+                            className="rounded-lg bg-cyan-50 p-2 text-cyan-700 transition hover:bg-cyan-100"
+                          >
+                            <Eye size={17} />
+                          </button>
+
+                          <button
+                            type="button"
+                            title="Delete appointment"
+                            disabled={
+                              deletingId ===
+                              appointment.appointmentId
+                            }
+                            onClick={() =>
+                              handleDelete(appointment)
+                            }
+                            className="rounded-lg bg-red-50 p-2 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                          >
+                            <Trash2 size={17} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -549,6 +652,7 @@ function AdminAppointments() {
                 <h2 className="text-lg font-bold text-slate-900">
                   Appointment Details
                 </h2>
+
                 <p className="mt-1 text-xs text-slate-500">
                   Appointment #{selectedAppointment.appointmentId}
                 </p>
@@ -567,40 +671,74 @@ function AdminAppointments() {
             <div className="space-y-5 p-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <UserRound className="mb-2 text-cyan-600" size={20} />
-                  <p className="text-xs text-slate-500">Patient</p>
+                  <UserRound
+                    className="mb-2 text-cyan-600"
+                    size={20}
+                  />
+
+                  <p className="text-xs text-slate-500">
+                    Patient
+                  </p>
+
                   <p className="mt-1 font-semibold text-slate-800">
                     {selectedAppointment.patientName}
                   </p>
+
                   <p className="mt-1 text-xs text-slate-400">
                     Patient ID: {selectedAppointment.patientId}
                   </p>
                 </div>
 
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <Stethoscope className="mb-2 text-cyan-600" size={20} />
-                  <p className="text-xs text-slate-500">Doctor</p>
+                  <Stethoscope
+                    className="mb-2 text-cyan-600"
+                    size={20}
+                  />
+
+                  <p className="text-xs text-slate-500">
+                    Doctor
+                  </p>
+
                   <p className="mt-1 font-semibold text-slate-800">
                     {selectedAppointment.doctorName}
                   </p>
+
                   <p className="mt-1 text-xs text-slate-400">
                     Doctor ID: {selectedAppointment.doctorId}
                   </p>
                 </div>
 
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <CalendarDays className="mb-2 text-cyan-600" size={20} />
-                  <p className="text-xs text-slate-500">Appointment Date</p>
+                  <CalendarDays
+                    className="mb-2 text-cyan-600"
+                    size={20}
+                  />
+
+                  <p className="text-xs text-slate-500">
+                    Appointment Date
+                  </p>
+
                   <p className="mt-1 font-semibold text-slate-800">
-                    {formatDate(selectedAppointment.appointmentDate)}
+                    {formatDate(
+                      selectedAppointment.appointmentDate
+                    )}
                   </p>
                 </div>
 
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <Clock className="mb-2 text-cyan-600" size={20} />
-                  <p className="text-xs text-slate-500">Appointment Time</p>
+                  <Clock
+                    className="mb-2 text-cyan-600"
+                    size={20}
+                  />
+
+                  <p className="text-xs text-slate-500">
+                    Appointment Time
+                  </p>
+
                   <p className="mt-1 font-semibold text-slate-800">
-                    {formatTime(selectedAppointment.appointmentTime)}
+                    {formatTime(
+                      selectedAppointment.appointmentTime
+                    )}
                   </p>
                 </div>
               </div>
@@ -609,40 +747,89 @@ function AdminAppointments() {
                 <p className="mb-2 text-sm font-semibold text-slate-700">
                   Appointment Reason
                 </p>
+
                 <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                  {selectedAppointment.reason || "No reason provided."}
+                  {selectedAppointment.reason ||
+                    "No reason provided."}
                 </div>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Update Appointment Status
-                </label>
+              {/* PRESCRIPTION INFORMATION */}
+              {selectedAppointment.hasPrescription && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <FileText size={19} />
+                    <p className="font-semibold">
+                      Prescription Issued
+                    </p>
+                  </div>
 
-                <select
-                  value={selectedAppointment.status || ""}
-                  disabled={updatingId === selectedAppointment.appointmentId}
-                  onChange={(event) =>
-                    handleStatusUpdate(
-                      selectedAppointment,
-                      event.target.value
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-cyan-500 disabled:opacity-50"
-                >
-                  {STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>
-                      {formatStatus(status)}
-                    </option>
-                  ))}
-                </select>
-
-                {updatingId === selectedAppointment.appointmentId && (
-                  <p className="mt-2 text-xs text-cyan-600">
-                    Updating appointment status...
+                  <p className="mt-2 text-sm leading-6 text-green-700">
+                    A prescription has been created for this
+                    appointment and is available in the Patient
+                    Portal.
                   </p>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* STATUS UPDATE OR FINALIZED MESSAGE */}
+              {isAppointmentFinalized(selectedAppointment) ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-center gap-2 text-amber-800">
+                    <Lock size={19} />
+                    <p className="font-semibold">
+                      Appointment Finalized
+                    </p>
+                  </div>
+
+                  <p className="mt-2 text-sm leading-6 text-amber-800">
+                    This appointment has been completed by the
+                    doctor and a prescription has been issued.
+                    Its status is locked to protect the medical
+                    record.
+                  </p>
+
+                  <p className="mt-2 text-xs font-semibold text-amber-800">
+                    Status: Completed · Prescription: Available
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Update Appointment Status
+                  </label>
+
+                  <select
+                    value={String(
+                      selectedAppointment.status || ""
+                    ).toUpperCase()}
+                    disabled={
+                      updatingId ===
+                      selectedAppointment.appointmentId
+                    }
+                    onChange={(event) =>
+                      handleStatusUpdate(
+                        selectedAppointment,
+                        event.target.value
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-cyan-500 disabled:opacity-50"
+                  >
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>
+                        {formatStatus(status)}
+                      </option>
+                    ))}
+                  </select>
+
+                  {updatingId ===
+                    selectedAppointment.appointmentId && (
+                    <p className="mt-2 text-xs text-cyan-600">
+                      Updating appointment status...
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end border-t border-slate-100 p-5">

@@ -17,6 +17,7 @@ import {
   HeartPulse,
   Mail,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -24,11 +25,15 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+
 import AdminAppointments from "./AdminAppointments";
 import AdminDoctors from "./AdminDoctors";
 import AdminContactMessages from "./AdminContactMessages";
 import AdminNotifications from "./AdminNotifications";
 import AdminPatients from "./AdminPatients";
+import AdminSettings from "./AdminSettings";
+import AdminPrescriptions from "./AdminPrescriptions";
+
 const navigation = [
   { name: "Dashboard", icon: LayoutDashboard },
   { name: "Appointments", icon: CalendarDays },
@@ -37,6 +42,7 @@ const navigation = [
   { name: "Contact Messages", icon: Mail },
   { name: "Notifications", icon: Bell },
   { name: "Settings", icon: Settings },
+  { name: "Prescriptions", icon: FileText },
 ];
 
 function AdminDashboard() {
@@ -45,7 +51,8 @@ function AdminDashboard() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState("Dashboard");
-const [adminUnreadCount, setAdminUnreadCount] = useState(0);
+  const [adminUnreadCount, setAdminUnreadCount] = useState(0);
+
   // Dashboard summary
   const [summary, setSummary] = useState({
     totalPatients: 0,
@@ -55,6 +62,7 @@ const [adminUnreadCount, setAdminUnreadCount] = useState(0);
     confirmedAppointments: 0,
     completedAppointments: 0,
     cancelledAppointments: 0,
+    rejectedAppointments: 0,
   });
 
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -196,33 +204,34 @@ const [adminUnreadCount, setAdminUnreadCount] = useState(0);
       clearInterval(interval);
     };
   }, []);
+
   // Fetch admin unread notification count
-useEffect(() => {
-  let isMounted = true;
+  useEffect(() => {
+    let isMounted = true;
 
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await api.get(
-        "/admin/notifications/unread-count"
-      );
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await api.get(
+          "/admin/notifications/unread-count"
+        );
 
-      if (isMounted) {
-        setAdminUnreadCount(Number(response.data || 0));
+        if (isMounted) {
+          setAdminUnreadCount(Number(response.data || 0));
+        }
+      } catch (error) {
+        console.error("Unread notification count error:", error);
       }
-    } catch (error) {
-      console.error("Unread notification count error:", error);
-    }
-  };
+    };
 
-  fetchUnreadCount();
+    fetchUnreadCount();
 
-  const interval = setInterval(fetchUnreadCount, 30000);
+    const interval = setInterval(fetchUnreadCount, 30000);
 
-  return () => {
-    isMounted = false;
-    clearInterval(interval);
-  };
-}, [activeMenu]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [activeMenu]);
 
   // Dashboard statistics cards
   const stats = [
@@ -256,7 +265,7 @@ useEffect(() => {
     },
   ];
 
-  // Dynamic appointment status calculations
+  // Appointment status summary
   const appointmentStatusSummary = [
     {
       label: "Confirmed",
@@ -285,6 +294,13 @@ useEffect(() => {
       color: "bg-red-400",
       icon: XCircle,
       iconColor: "bg-red-50 text-red-600",
+    },
+    {
+      label: "Rejected",
+      count: Number(summary.rejectedAppointments || 0),
+      color: "bg-slate-500",
+      icon: XCircle,
+      iconColor: "bg-slate-100 text-slate-600",
     },
   ];
 
@@ -320,24 +336,11 @@ useEffect(() => {
     });
   }, [appointments, searchTerm]);
 
+  // Sidebar navigation
   const handleNavigation = (menuName) => {
-  if (
-    ![
-      "Dashboard",
-      "Appointments",
-      "Patients",
-      "Doctors",
-      "Contact Messages",
-      "Notifications",
-    ].includes(menuName)
-  ) {
-    toast(`${menuName} module is coming soon.`);
-    return;
-  }
-
-  setActiveMenu(menuName);
-  setSidebarOpen(false);
-};
+    setActiveMenu(menuName);
+    setSidebarOpen(false);
+  };
 
   const handleLogout = () => {
     logout();
@@ -345,7 +348,7 @@ useEffect(() => {
     navigate("/");
   };
 
-  // Convert database status into readable labels
+  // Appointment status labels
   const formatStatus = (status) => {
     if (!status) return "Unknown";
 
@@ -480,8 +483,8 @@ useEffect(() => {
                   key={item.name}
                   onClick={() => handleNavigation(item.name)}
                   className={`group flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ${isActive
-                    ? "bg-cyan-50 text-cyan-700 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-cyan-700"
+                      ? "bg-cyan-50 text-cyan-700 shadow-sm"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-cyan-700"
                     }`}
                 >
                   <span className="flex items-center gap-3">
@@ -493,13 +496,17 @@ useEffect(() => {
                           : "text-slate-400 group-hover:text-cyan-600"
                       }
                     />
+
                     {item.name}
 
-{item.name === "Notifications" && adminUnreadCount > 0 && (
-  <span className="ml-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-    {adminUnreadCount > 99 ? "99+" : adminUnreadCount}
-  </span>
-)}
+                    {item.name === "Notifications" &&
+                      adminUnreadCount > 0 && (
+                        <span className="ml-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                          {adminUnreadCount > 99
+                            ? "99+"
+                            : adminUnreadCount}
+                        </span>
+                      )}
                   </span>
 
                   {isActive && (
@@ -525,7 +532,9 @@ useEffect(() => {
               <p className="truncate text-sm font-bold text-slate-800">
                 {adminName}
               </p>
-              <p className="text-xs text-slate-500">Administrator</p>
+              <p className="text-xs text-slate-500">
+                Administrator
+              </p>
             </div>
           </div>
 
@@ -577,11 +586,14 @@ useEffect(() => {
               aria-label="Notifications"
             >
               <Bell size={21} />
-{adminUnreadCount > 0 && (
-  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
-    {adminUnreadCount > 99 ? "99+" : adminUnreadCount}
-  </span>
-)}
+
+              {adminUnreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                  {adminUnreadCount > 99
+                    ? "99+"
+                    : adminUnreadCount}
+                </span>
+              )}
             </button>
 
             <div className="flex items-center gap-3 border-l border-slate-100 pl-4">
@@ -603,19 +615,23 @@ useEffect(() => {
 
         {/* DASHBOARD CONTENT */}
         <div className="p-5 sm:p-8">
-          {activeMenu === "Appointments" ? (
-  <AdminAppointments />
-) : activeMenu === "Patients" ? (
-  <AdminPatients />
-) : activeMenu === "Doctors" ? (
-  <AdminDoctors />
-) : activeMenu === "Contact Messages" ? (
-  <AdminContactMessages />
-) : activeMenu === "Notifications" ? (
-  <AdminNotifications />
-) : (
-            <>
 
+          {activeMenu === "Appointments" ? (
+            <AdminAppointments />
+          ) : activeMenu === "Patients" ? (
+            <AdminPatients />
+          ) : activeMenu === "Doctors" ? (
+            <AdminDoctors />
+            ) : activeMenu === "Prescriptions" ? (
+  <AdminPrescriptions />
+          ) : activeMenu === "Contact Messages" ? (
+            <AdminContactMessages />
+          ) : activeMenu === "Notifications" ? (
+            <AdminNotifications />
+          ) : activeMenu === "Settings" ? (
+            <AdminSettings />
+          ) : (
+            <>
               {/* PAGE INTRO */}
               <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
@@ -752,9 +768,7 @@ useEffect(() => {
                             key={item.label}
                             className="flex items-center gap-4"
                           >
-                            <div
-                              className={`rounded-xl p-3 ${item.iconColor}`}
-                            >
+                            <div className={`rounded-xl p-3 ${item.iconColor}`}>
                               <Icon size={22} />
                             </div>
 
@@ -787,9 +801,7 @@ useEffect(() => {
                     </div>
                   )}
                 </div>
-
               </div>
-              {/* END LOWER DASHBOARD SECTION */}
 
               {/* RECENT APPOINTMENTS */}
               <div className="mt-8 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">

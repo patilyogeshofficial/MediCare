@@ -1,3 +1,4 @@
+
 package com.medicare.backend.dto;
 
 import java.time.LocalDate;
@@ -5,13 +6,16 @@ import java.time.LocalTime;
 
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public class AppointmentRequestDTO {
 
+    @Positive(message = "Patient ID must be a positive number")
     private Long patientId;
 
     @NotNull(message = "Doctor ID is required")
+    @Positive(message = "Doctor ID must be a positive number")
     private Long doctorId;
 
     @NotNull(message = "Appointment date is required")

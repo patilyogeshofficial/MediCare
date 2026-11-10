@@ -25,8 +25,11 @@ public class PatientProfileUpdateDTO {
     @Size(max = 15, message = "Phone number cannot exceed 15 characters")
     private String phone;
 
+    @Size(max = 1000, message = "Address cannot exceed 1000 characters")
     private String address;
 
+    @Pattern(
+    regexp = "^(A\\+|A-|B\\+|B-|AB\\+|AB-|O\\+|O-)?$",message = "Invalid blood group")
     @Size(max = 5, message = "Blood group cannot exceed 5 characters")
     private String bloodGroup;
 

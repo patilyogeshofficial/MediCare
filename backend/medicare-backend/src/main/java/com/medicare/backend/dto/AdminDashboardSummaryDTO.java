@@ -11,6 +11,7 @@ public class AdminDashboardSummaryDTO {
     private long confirmedAppointments;
     private long completedAppointments;
     private long cancelledAppointments;
+    private long rejectedAppointments;
 
     public AdminDashboardSummaryDTO(
             long totalPatients,
@@ -19,7 +20,8 @@ public class AdminDashboardSummaryDTO {
             long pendingAppointments,
             long confirmedAppointments,
             long completedAppointments,
-            long cancelledAppointments) {
+            long cancelledAppointments,
+            long rejectedAppointments) {
 
         this.totalPatients = totalPatients;
         this.totalDoctors = totalDoctors;
@@ -28,6 +30,7 @@ public class AdminDashboardSummaryDTO {
         this.confirmedAppointments = confirmedAppointments;
         this.completedAppointments = completedAppointments;
         this.cancelledAppointments = cancelledAppointments;
+        this.rejectedAppointments = rejectedAppointments;
     }
 
     public long getTotalPatients() {
@@ -56,5 +59,9 @@ public class AdminDashboardSummaryDTO {
 
     public long getCancelledAppointments() {
         return cancelledAppointments;
+    }
+
+    public long getRejectedAppointments() {
+        return rejectedAppointments;
     }
 }

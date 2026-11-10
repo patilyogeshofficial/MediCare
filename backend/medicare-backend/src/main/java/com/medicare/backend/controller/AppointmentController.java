@@ -10,7 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-
+import com.medicare.backend.dto.DoctorPatientResponseDTO;
 import com.medicare.backend.dto.AppointmentRequestDTO;
 import com.medicare.backend.dto.AppointmentResponseDTO;
 import com.medicare.backend.service.AppointmentService;
@@ -121,6 +121,19 @@ public class AppointmentController {
     }
 
     // ==========================================
+// GET MY PATIENTS (DOCTOR ONLY)
+// ==========================================
+
+@GetMapping("/my-patients")
+@PreAuthorize("hasRole('DOCTOR')")
+public ResponseEntity<List<DoctorPatientResponseDTO>> getMyPatients(
+        Authentication authentication) {
+
+    return ResponseEntity.ok(
+            appointmentService.getMyPatients(
+                    authentication.getName()));
+}
+    // ==========================================
     // CREATE APPOINTMENT (PATIENT ONLY)
     // ==========================================
 
@@ -159,16 +172,37 @@ public class AppointmentController {
     // UPDATE APPOINTMENT STATUS (ADMIN ONLY)
     // ==========================================
 
+    // UPDATE APPOINTMENT STATUS (ADMIN / ASSIGNED DOCTOR)
+
     @PatchMapping("/{appointmentId}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<AppointmentResponseDTO> updateAppointmentStatus(
             @PathVariable Long appointmentId,
-            @RequestParam String status) {
+            @RequestParam String status,
+            Authentication authentication) {
 
-        return ResponseEntity.ok(
-                appointmentService.updateAppointmentStatus(
-                        appointmentId, status));
+        String normalizedStatus = status.trim().toUpperCase();
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        AppointmentResponseDTO response;
+
+        if (isAdmin) {
+            response = appointmentService.updateAppointmentStatus(
+                    appointmentId, normalizedStatus);
+        } else {
+            response = appointmentService.updateAppointmentStatusByDoctor(
+                    appointmentId,
+                    normalizedStatus,
+                    authentication.getName());
+        }
+
+        return ResponseEntity.ok(response);
     }
+
 
     // ==========================================
     // DELETE APPOINTMENT (ADMIN ONLY)

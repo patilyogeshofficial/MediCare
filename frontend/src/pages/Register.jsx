@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   HeartPulse,
   User,
@@ -9,10 +10,15 @@ import {
   EyeOff,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 function Register() {
+  const navigate = useNavigate();
+  const { register } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -30,22 +36,68 @@ function Register() {
     }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
+    const fullName = formData.fullName.trim();
+    const email = formData.email.trim().toLowerCase();
+    const password = formData.password;
+    const confirmPassword = formData.confirmPassword;
+
+    if (!fullName) {
+      toast.error("Please enter your full name.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
       toast.error("Passwords do not match!");
       return;
     }
 
-    if (formData.password.length < 8) {
-      toast.error("Password must contain at least 8 characters.");
+    if (password.length < 8 || password.length > 72) {
+      toast.error("Password must contain 8 to 72 characters.");
       return;
     }
 
-    toast("Registration API integration will be added next.", {
-      icon: "ℹ️",
-    });
+    setIsLoading(true);
+
+    try {
+      const response = await register({
+        fullName,
+        email,
+        password,
+      });
+
+      if (response.role !== "PATIENT") {
+        toast.error("Unexpected account role. Please contact support.");
+        return;
+      }
+
+      toast.success("Account created successfully!");
+
+      navigate("/patient/dashboard", { replace: true });
+
+    } catch (error) {
+      const status = error.response?.status;
+
+      if (status === 409) {
+        toast.error("This email is already registered. Please sign in.");
+      } else if (status === 400) {
+        const message =
+          error.response?.data?.detail ||
+          error.response?.data?.message;
+
+        toast.error(message || "Please check your registration details.");
+      } else if (status === 403) {
+        toast.error("Registration access denied.");
+      } else if (error.request) {
+        toast.error("Unable to connect to server. Please try again.");
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -109,7 +161,8 @@ function Register() {
                   autoComplete="name"
                   maxLength={150}
                   required
-                  className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                  disabled={isLoading}
+                  className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 disabled:bg-slate-50"
                 />
               </div>
             </div>
@@ -139,7 +192,8 @@ function Register() {
                   autoComplete="email"
                   maxLength={150}
                   required
-                  className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                  disabled={isLoading}
+                  className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 disabled:bg-slate-50"
                 />
               </div>
             </div>
@@ -170,7 +224,8 @@ function Register() {
                   minLength={8}
                   maxLength={72}
                   required
-                  className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-12 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                  disabled={isLoading}
+                  className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-12 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 disabled:bg-slate-50"
                 />
 
                 <button
@@ -208,7 +263,8 @@ function Register() {
                   onChange={handleChange}
                   autoComplete="new-password"
                   required
-                  className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-12 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                  disabled={isLoading}
+                  className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-12 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 disabled:bg-slate-50"
                 />
 
                 <button
@@ -235,9 +291,10 @@ function Register() {
             {/* REGISTER BUTTON */}
             <button
               type="submit"
-              className="w-full rounded-xl bg-cyan-600 py-3 font-semibold text-white shadow-md transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600"
+              disabled={isLoading}
+              className="w-full rounded-xl bg-cyan-600 py-3 font-semibold text-white shadow-md transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Create Account
+              {isLoading ? "Creating Account..." : "Create Account"}
             </button>
 
           </form>

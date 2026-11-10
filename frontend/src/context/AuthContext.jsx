@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState } from "react";
 import api from "../services/api";
 
@@ -30,6 +31,28 @@ export function AuthProvider({ children }) {
 
     localStorage.setItem("medicare_auth", JSON.stringify(authData));
     setAuth(authData);
+  };
+
+  // UPDATE USER DETAILS
+  const updateUser = (updatedUser) => {
+    setAuth((currentAuth) => {
+      if (!currentAuth) return currentAuth;
+
+      const updatedAuth = {
+        ...currentAuth,
+        user: {
+          ...currentAuth.user,
+          ...updatedUser,
+        },
+      };
+
+      localStorage.setItem(
+        "medicare_auth",
+        JSON.stringify(updatedAuth)
+      );
+
+      return updatedAuth;
+    });
   };
 
   // LOGIN
@@ -67,6 +90,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateUser,
   };
 
   return (

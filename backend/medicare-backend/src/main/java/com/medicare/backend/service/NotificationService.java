@@ -80,7 +80,24 @@ private final AdminNotificationPreferenceRepository preferenceRepository;
 
         return convertToDTO(updatedNotification);
     }
+// Mark all notifications as read for authenticated user
+@Transactional
+public int markAllAsRead(String authenticatedEmail) {
 
+    User user = getAuthenticatedUser(authenticatedEmail);
+
+    return notificationRepository
+            .markAllAsReadByUserId(user.getUserId());
+}
+
+// Delete all notifications for authenticated user
+@Transactional
+public void clearAllNotifications(String authenticatedEmail) {
+
+    User user = getAuthenticatedUser(authenticatedEmail);
+
+    notificationRepository.deleteByUserId(user.getUserId());
+}
     // Get authenticated user
     private User getAuthenticatedUser(String authenticatedEmail) {
 

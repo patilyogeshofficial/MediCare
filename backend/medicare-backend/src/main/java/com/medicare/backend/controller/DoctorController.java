@@ -7,14 +7,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.medicare.backend.dto.PublicDoctorResponseDTO;
 import com.medicare.backend.dto.DoctorRequestDTO;
 import com.medicare.backend.dto.DoctorResponseDTO;
 import com.medicare.backend.service.DoctorService;
-
+import com.medicare.backend.dto.AdminDoctorUpdateDTO;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-
+import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
 
 @RestController
@@ -27,22 +28,42 @@ public class DoctorController {
         this.doctorService = doctorService;
     }
 
-    // Get all doctors (Admin, Doctor, Patient)
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'PATIENT')")
+    // Get all doctors (Public access)
     @GetMapping
-    public ResponseEntity<List<DoctorResponseDTO>> getAllDoctors() {
+    public ResponseEntity<List<PublicDoctorResponseDTO>> getAllDoctors() {
 
-        return ResponseEntity.ok(doctorService.getAllDoctors());
+        return ResponseEntity.ok(
+                doctorService.getAllDoctors());
     }
-
     // Get doctor by ID (Admin, Doctor, Patient)
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'PATIENT')")
     @GetMapping("/{doctorId}")
-    public ResponseEntity<DoctorResponseDTO> getDoctorById(
-            @PathVariable Long doctorId) {
+    public ResponseEntity<?> getDoctorById(
+            @PathVariable Long doctorId,
+            Authentication authentication) {
+
+        boolean isPatient = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_PATIENT"));
+
+        if (isPatient) {
+            return ResponseEntity.ok(
+                    doctorService.getPublicDoctorById(doctorId));
+        }
 
         return ResponseEntity.ok(
                 doctorService.getDoctorById(doctorId));
+    }
+
+    // Get currently logged-in doctor's own profile
+    @PreAuthorize("hasRole('DOCTOR')")
+    @GetMapping("/me")
+    public ResponseEntity<DoctorResponseDTO> getMyDoctorProfile(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                doctorService.getMyDoctorProfile(
+                        authentication.getName()));
     }
 
     // Create doctor (Admin only)
@@ -81,4 +102,16 @@ public class DoctorController {
 
         return ResponseEntity.noContent().build();
     }
+
+    // Admin updates complete doctor account and profile
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{doctorId}/admin")
+    public ResponseEntity<DoctorResponseDTO> updateDoctorByAdmin(
+            @PathVariable Long doctorId,
+            @Valid @RequestBody AdminDoctorUpdateDTO dto) {
+
+        return ResponseEntity.ok(
+                doctorService.updateDoctorByAdmin(doctorId, dto));
+    }
+
 }

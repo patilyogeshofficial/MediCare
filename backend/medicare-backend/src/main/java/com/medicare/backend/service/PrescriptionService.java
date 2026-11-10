@@ -14,10 +14,12 @@ import tools.jackson.databind.json.JsonMapper;
 import com.medicare.backend.dto.PrescriptionRequestDTO;
 import com.medicare.backend.dto.PrescriptionResponseDTO;
 import com.medicare.backend.entity.Appointment;
+import com.medicare.backend.entity.Doctor;
 import com.medicare.backend.entity.Patient;
 import com.medicare.backend.entity.Prescription;
 import com.medicare.backend.entity.User;
 import com.medicare.backend.repository.AppointmentRepository;
+import com.medicare.backend.repository.DoctorRepository;
 import com.medicare.backend.repository.PatientRepository;
 import com.medicare.backend.repository.PrescriptionRepository;
 import com.medicare.backend.repository.UserRepository;
@@ -31,6 +33,7 @@ public class PrescriptionService {
     private final PrescriptionRepository prescriptionRepository;
     private final AppointmentRepository appointmentRepository;
     private final JsonMapper jsonMapper;
+    private final DoctorRepository doctorRepository;
 
     public PrescriptionService(
             PrescriptionRepository prescriptionRepository,
@@ -38,7 +41,8 @@ public class PrescriptionService {
             PatientRepository patientRepository,
             UserRepository userRepository,
             JsonMapper jsonMapper,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            DoctorRepository doctorRepository) {
 
         this.prescriptionRepository = prescriptionRepository;
         this.appointmentRepository = appointmentRepository;
@@ -46,9 +50,10 @@ public class PrescriptionService {
         this.userRepository = userRepository;
         this.jsonMapper = jsonMapper;
         this.notificationService = notificationService;
+        this.doctorRepository = doctorRepository;
     }
 
-    // Get all prescriptions
+    // Get all prescriptions - ADMIN
     public List<PrescriptionResponseDTO> getAllPrescriptions() {
 
         return prescriptionRepository.findAll()
@@ -61,35 +66,29 @@ public class PrescriptionService {
     public List<PrescriptionResponseDTO> getMyPrescriptions(
             String authenticatedEmail) {
 
-        // Find authenticated user
         User user = userRepository.findByEmail(
                 authenticatedEmail.trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "User not found"));
 
-        // Find patient profile
         Patient patient = patientRepository.findByUserId(user.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Patient profile not found"));
 
-        // Find appointments belonging to this patient
         List<Appointment> appointments =
                 appointmentRepository.findByPatientId(
                         patient.getPatientId());
 
-        // Return empty list if patient has no appointments
         if (appointments.isEmpty()) {
             return List.of();
         }
 
-        // Extract appointment IDs
         List<Long> appointmentIds = appointments.stream()
                 .map(Appointment::getAppointmentId)
                 .toList();
 
-        // Find prescriptions belonging to these appointments
         return prescriptionRepository.findByAppointmentIdIn(appointmentIds)
                 .stream()
                 .map(this::convertToDTO)
@@ -115,20 +114,43 @@ public class PrescriptionService {
                                 + appointmentId));
     }
 
-    // Create prescription
+    // Create prescription - DOCTOR only
     @Transactional
     public PrescriptionResponseDTO createPrescription(
-            PrescriptionRequestDTO request) {
+            PrescriptionRequestDTO request,
+            String authenticatedEmail) {
 
+        // 1. Find authenticated doctor
+        User user = userRepository.findByEmail(
+                authenticatedEmail.trim().toLowerCase())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found"));
+
+        Doctor doctor = doctorRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Doctor profile not found"));
+
+        // 2. Find appointment
         Appointment appointment =
                 validateAppointment(request.getAppointmentId());
 
+        // 3. Verify that this appointment belongs to this doctor
+        if (!doctor.getDoctorId().equals(appointment.getDoctorId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not allowed to create a prescription for this appointment");
+        }
+
+        // 4. Prescription can only be created after completion
         if (!"COMPLETED".equals(appointment.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Prescription can only be created for completed appointments");
         }
 
+        // 5. Prevent duplicate prescriptions
         if (prescriptionRepository.existsByAppointmentId(
                 request.getAppointmentId())) {
 
@@ -137,8 +159,10 @@ public class PrescriptionService {
                     "Prescription already exists for this appointment");
         }
 
+        // 6. Validate medication JSON
         validateMedications(request.getMedications());
 
+        // 7. Create prescription
         Prescription prescription = new Prescription();
 
         prescription.setAppointmentId(request.getAppointmentId());
@@ -146,11 +170,10 @@ public class PrescriptionService {
         prescription.setMedications(request.getMedications());
         prescription.setInstructions(request.getInstructions());
 
-        // Save prescription first to generate its ID
         Prescription savedPrescription =
                 prescriptionRepository.saveAndFlush(prescription);
 
-        // Notify admins about the new prescription
+        // 8. Notify admins
         notificationService.createAdminActivityNotification(
                 "New Prescription Created",
                 "A new prescription has been created for appointment #"
@@ -160,10 +183,27 @@ public class PrescriptionService {
                 savedPrescription.getPrescriptionId()
         );
 
+        // 9. Notify the patient
+        Patient patient = patientRepository.findById(
+                appointment.getPatientId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient profile not found"));
+
+        notificationService.createNotification(
+                patient.getUserId(),
+                "New Prescription Available",
+                "Your doctor has added a prescription for appointment #"
+                        + savedPrescription.getAppointmentId() + ".",
+                "NEW_PRESCRIPTION",
+                savedPrescription.getAppointmentId(),
+                savedPrescription.getPrescriptionId()
+        );
+
         return convertToDTO(savedPrescription);
     }
 
-    // Update prescription
+    // Update prescription - ADMIN
     @Transactional
     public PrescriptionResponseDTO updatePrescription(
             Long prescriptionId,
@@ -190,7 +230,7 @@ public class PrescriptionService {
                 prescriptionRepository.save(prescription));
     }
 
-    // Delete prescription
+    // Delete prescription - ADMIN
     @Transactional
     public void deletePrescription(Long prescriptionId) {
 
@@ -251,4 +291,28 @@ public class PrescriptionService {
                 prescription.getInstructions(),
                 prescription.getPrescribedAt());
     }
+    // Check whether a prescription exists for the doctor's appointment
+public boolean hasPrescription(
+        Long appointmentId,
+        String authenticatedEmail) {
+
+    User user = userRepository.findByEmail(
+            authenticatedEmail.trim().toLowerCase())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "User not found"));
+
+    Doctor doctor = doctorRepository.findByUserId(user.getUserId())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Doctor profile not found"));
+
+    Appointment appointment = validateAppointment(appointmentId);
+
+    if (!doctor.getDoctorId().equals(appointment.getDoctorId())) {
+        throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not allowed to access this appointment");
+    }
+
+    return prescriptionRepository.existsByAppointmentId(appointmentId);
+}
 }

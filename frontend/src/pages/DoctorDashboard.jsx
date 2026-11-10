@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 
 import DoctorAppointments from "./DoctorAppointments";
 import DoctorPatients from "./DoctorPatients";
@@ -25,78 +26,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-// Dashboard Statistics
-const stats = [
-  {
-    title: "Today's Appointments",
-    value: "12",
-    icon: CalendarDays,
-    color: "bg-cyan-50 text-cyan-600",
-    change: "Today's schedule",
-  },
-  {
-    title: "Total Patients",
-    value: "186",
-    icon: Users,
-    color: "bg-blue-50 text-blue-600",
-    change: "Assigned patients",
-  },
-  {
-    title: "Upcoming Appointments",
-    value: "28",
-    icon: Clock,
-    color: "bg-purple-50 text-purple-600",
-    change: "Next appointments",
-  },
-  {
-    title: "Pending Appointments",
-    value: "5",
-    icon: Stethoscope,
-    color: "bg-orange-50 text-orange-600",
-    change: "Needs attention",
-  },
-];
-
-// Dummy Appointments
-const appointments = [
-  {
-    id: "#APT101",
-    patient: "Rahul Sharma",
-    age: 32,
-    date: "06 Nov 2026",
-    time: "10:30 AM",
-    reason: "General Checkup",
-    status: "Confirmed",
-  },
-  {
-    id: "#APT102",
-    patient: "Priya Deshmukh",
-    age: 27,
-    date: "06 Nov 2026",
-    time: "11:00 AM",
-    reason: "Headache",
-    status: "Pending",
-  },
-  {
-    id: "#APT103",
-    patient: "Rohan More",
-    age: 45,
-    date: "06 Nov 2026",
-    time: "12:30 PM",
-    reason: "Regular Follow-up",
-    status: "Completed",
-  },
-  {
-    id: "#APT104",
-    patient: "Neha Patil",
-    age: 29,
-    date: "06 Nov 2026",
-    time: "02:00 PM",
-    reason: "Fever",
-    status: "Confirmed",
-  },
-];
-
 // Sidebar Navigation
 const navigation = [
   { name: "Dashboard", icon: LayoutDashboard },
@@ -112,6 +41,142 @@ function DoctorDashboard() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState("Dashboard");
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
+  const [appointmentsError, setAppointmentsError] = useState("");
+
+  // Load appointments belonging only to the authenticated doctor.
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAppointments = async () => {
+      try {
+        setAppointmentsLoading(true);
+        setAppointmentsError("");
+        const response = await api.get("/appointments/my");
+        if (isMounted) {
+          setAppointments(Array.isArray(response.data) ? response.data : []);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setAppointmentsError(
+            error.response?.data?.message ||
+              "Unable to load your appointments. Please refresh the page."
+          );
+        }
+      } finally {
+        if (isMounted) setAppointmentsLoading(false);
+      }
+    };
+
+    loadAppointments();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const today = (() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  })();
+
+  const todayAppointments = useMemo(
+    () => appointments.filter((item) => item.appointmentDate === today),
+    [appointments, today]
+  );
+
+  const appointmentCounts = useMemo(() => {
+    const countByStatus = (status) =>
+      appointments.filter(
+        (item) => String(item.status || "").toUpperCase() === status
+      ).length;
+
+    const activeAppointments = appointments.filter((item) =>
+      ["PENDING", "CONFIRMED"].includes(String(item.status || "").toUpperCase())
+    );
+
+    const uniquePatientIds = new Set(
+      appointments
+        .map((item) => item.patientId)
+        .filter((patientId) => patientId !== null && patientId !== undefined)
+    );
+
+    return {
+      totalPatients: uniquePatientIds.size,
+      upcoming: activeAppointments.filter(
+        (item) => item.appointmentDate >= today
+      ).length,
+      pending: countByStatus("PENDING"),
+      confirmed: countByStatus("CONFIRMED"),
+      completed: countByStatus("COMPLETED"),
+      cancelled: countByStatus("CANCELLED"),
+      rejected: countByStatus("REJECTED"),
+    };
+  }, [appointments, today]);
+
+  const stats = [
+    {
+      title: "Today's Appointments",
+      value: todayAppointments.length,
+      icon: CalendarDays,
+      color: "bg-cyan-50 text-cyan-600",
+      change: "Today's schedule",
+    },
+    {
+      title: "Total Patients",
+      value: appointmentCounts.totalPatients,
+      icon: Users,
+      color: "bg-blue-50 text-blue-600",
+      change: "Unique patients",
+    },
+    {
+      title: "Upcoming Appointments",
+      value: appointmentCounts.upcoming,
+      icon: Clock,
+      color: "bg-purple-50 text-purple-600",
+      change: "Pending or confirmed",
+    },
+    {
+      title: "Pending Appointments",
+      value: appointmentCounts.pending,
+      icon: Stethoscope,
+      color: "bg-orange-50 text-orange-600",
+      change: "Needs attention",
+    },
+  ];
+
+  const statusBreakdown = [
+    { label: "Confirmed", value: appointmentCounts.confirmed, color: "bg-green-500" },
+    { label: "Pending", value: appointmentCounts.pending, color: "bg-orange-400" },
+    { label: "Completed", value: appointmentCounts.completed, color: "bg-cyan-500" },
+    { label: "Cancelled", value: appointmentCounts.cancelled, color: "bg-red-400" },
+    { label: "Rejected", value: appointmentCounts.rejected, color: "bg-slate-400" },
+  ];
+
+  const totalAppointments = appointments.length;
+  const formatAppointmentDate = (date) => {
+    if (!date) return "—";
+    return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatAppointmentTime = (time) => {
+    if (!time) return "—";
+    const [hours, minutes] = time.split(":");
+    const parsed = new Date();
+    parsed.setHours(Number(hours), Number(minutes || 0), 0, 0);
+    return parsed.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
 
   // Logout
   const handleLogout = () => {
@@ -122,17 +187,17 @@ function DoctorDashboard() {
 
   // Appointment Status Styling
   const getStatusStyle = (status) => {
-    switch (status) {
-      case "Confirmed":
+    switch (String(status || "").toUpperCase()) {
+      case "CONFIRMED":
         return "bg-green-50 text-green-700";
 
-      case "Pending":
+      case "PENDING":
         return "bg-orange-50 text-orange-700";
 
-      case "Completed":
+      case "COMPLETED":
         return "bg-blue-50 text-blue-700";
 
-      case "Cancelled":
+      case "CANCELLED":
         return "bg-red-50 text-red-700";
 
       default:
@@ -311,7 +376,11 @@ function DoctorDashboard() {
 
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600">
                   <CalendarDays className="mr-2 inline" size={17} />
-                  06 November 2026
+                  {new Date().toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </div>
               </div>
 
@@ -341,7 +410,7 @@ function DoctorDashboard() {
                       </p>
 
                       <h3 className="mt-1 text-3xl font-extrabold text-slate-900">
-                        {stat.value}
+                        {appointmentsLoading ? "—" : stat.value}
                       </h3>
                     </div>
                   );
@@ -356,7 +425,7 @@ function DoctorDashboard() {
                   <div className="mb-6 flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-slate-900">
-                        Today's Appointment Schedule
+                        Appointment Status Overview
                       </h3>
 
                       <p className="mt-1 text-sm text-slate-500">
@@ -368,28 +437,11 @@ function DoctorDashboard() {
                   </div>
 
                   <div className="space-y-6">
-                    {[
-                      {
-                        label: "Confirmed",
-                        value: 65,
-                        color: "bg-green-500",
-                      },
-                      {
-                        label: "Pending",
-                        value: 20,
-                        color: "bg-orange-400",
-                      },
-                      {
-                        label: "Completed",
-                        value: 85,
-                        color: "bg-cyan-500",
-                      },
-                      {
-                        label: "Cancelled",
-                        value: 10,
-                        color: "bg-red-400",
-                      },
-                    ].map((item) => (
+                    {statusBreakdown.map((item) => {
+                      const percentage = totalAppointments
+                        ? Math.round((item.value / totalAppointments) * 100)
+                        : 0;
+                      return (
                       <div key={item.label}>
                         <div className="mb-2 flex justify-between text-sm">
                           <span className="font-semibold text-slate-700">
@@ -397,19 +449,23 @@ function DoctorDashboard() {
                           </span>
 
                           <span className="font-bold text-slate-600">
-                            {item.value}%
+                            {appointmentsLoading ? "—" : `${percentage}%`}
                           </span>
                         </div>
 
                         <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                           <div
                             className={`h-full rounded-full ${item.color}`}
-                            style={{ width: `${item.value}%` }}
+                            style={{ width: `${appointmentsLoading ? 0 : percentage}%` }}
                           />
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
+                  {appointmentsError && (
+                    <p className="mt-4 text-sm text-red-600">{appointmentsError}</p>
+                  )}
                 </div>
 
                 {/* QUICK SUMMARY */}
@@ -431,7 +487,7 @@ function DoctorDashboard() {
 
                       <div>
                         <p className="text-xl font-bold text-slate-900">
-                          18
+                          {appointmentsLoading ? "—" : appointmentCounts.confirmed}
                         </p>
 
                         <p className="text-sm text-slate-500">
@@ -447,7 +503,7 @@ function DoctorDashboard() {
 
                       <div>
                         <p className="text-xl font-bold text-slate-900">
-                          5
+                          {appointmentsLoading ? "—" : appointmentCounts.pending}
                         </p>
 
                         <p className="text-sm text-slate-500">
@@ -463,7 +519,7 @@ function DoctorDashboard() {
 
                       <div>
                         <p className="text-xl font-bold text-slate-900">
-                          42
+                          {appointmentsLoading ? "—" : appointmentCounts.completed}
                         </p>
 
                         <p className="text-sm text-slate-500">
@@ -479,7 +535,7 @@ function DoctorDashboard() {
 
                       <div>
                         <p className="text-xl font-bold text-slate-900">
-                          3
+                          {appointmentsLoading ? "—" : appointmentCounts.cancelled}
                         </p>
 
                         <p className="text-sm text-slate-500">
@@ -519,7 +575,7 @@ function DoctorDashboard() {
                         </th>
 
                         <th className="px-6 py-4 font-semibold">
-                          Age
+                          Patient ID
                         </th>
 
                         <th className="px-6 py-4 font-semibold">
@@ -537,46 +593,58 @@ function DoctorDashboard() {
                     </thead>
 
                     <tbody className="divide-y divide-slate-100">
-                      {appointments.map((appointment) => (
-                        <tr
-                          key={appointment.id}
-                          className="transition hover:bg-slate-50"
-                        >
-                          <td className="px-6 py-4 text-sm font-semibold text-cyan-700">
-                            {appointment.id}
-                          </td>
-
-                          <td className="px-6 py-4 text-sm font-semibold text-slate-800">
-                            {appointment.patient}
-                          </td>
-
-                          <td className="px-6 py-4 text-sm text-slate-600">
-                            {appointment.age}
-                          </td>
-
-                          <td className="px-6 py-4 text-sm text-slate-600">
-                            <p>{appointment.date}</p>
-
-                            <p className="mt-1 text-xs text-slate-400">
-                              {appointment.time}
-                            </p>
-                          </td>
-
-                          <td className="px-6 py-4 text-sm text-slate-600">
-                            {appointment.reason}
-                          </td>
-
-                          <td className="px-6 py-4">
-                            <span
-                              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${getStatusStyle(
-                                appointment.status
-                              )}`}
-                            >
-                              {appointment.status}
-                            </span>
+                      {appointmentsLoading ? (
+                        <tr>
+                          <td colSpan="6" className="px-6 py-8 text-center text-sm text-slate-500">
+                            Loading today's appointments...
                           </td>
                         </tr>
-                      ))}
+                      ) : appointmentsError ? (
+                        <tr>
+                          <td colSpan="6" className="px-6 py-8 text-center text-sm text-red-600">
+                            {appointmentsError}
+                          </td>
+                        </tr>
+                      ) : todayAppointments.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="px-6 py-8 text-center text-sm text-slate-500">
+                            No appointments scheduled for today.
+                          </td>
+                        </tr>
+                      ) : (
+                        todayAppointments.map((appointment) => (
+                          <tr
+                            key={appointment.appointmentId}
+                            className="transition hover:bg-slate-50"
+                          >
+                            <td className="px-6 py-4 text-sm font-semibold text-cyan-700">
+                              #{appointment.appointmentId}
+                            </td>
+                            <td className="px-6 py-4 text-sm font-semibold text-slate-800">
+                              Patient #{appointment.patientId}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-slate-600">
+                              #{appointment.patientId}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-slate-600">
+                              <p>{formatAppointmentDate(appointment.appointmentDate)}</p>
+                              <p className="mt-1 text-xs text-slate-400">
+                                {formatAppointmentTime(appointment.appointmentTime)}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-slate-600">
+                              {appointment.reason || "—"}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${getStatusStyle(appointment.status)}`}
+                              >
+                                {String(appointment.status || "").toLowerCase().replace(/^./, (letter) => letter.toUpperCase())}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
 
                   </table>

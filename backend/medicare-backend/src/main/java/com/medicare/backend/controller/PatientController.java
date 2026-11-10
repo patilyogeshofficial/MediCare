@@ -14,7 +14,7 @@ import com.medicare.backend.dto.PatientProfileUpdateDTO;
 import com.medicare.backend.dto.PatientRequestDTO;
 import com.medicare.backend.dto.PatientResponseDTO;
 import com.medicare.backend.service.PatientService;
-
+import com.medicare.backend.dto.AdminPatientUpdateDTO;
 import jakarta.validation.Valid;
 
 @RestController
@@ -73,15 +73,15 @@ public class PatientController {
     // UPDATE PATIENT - ADMIN ONLY
     // ==========================================
 
-    @PutMapping("/{patientId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<PatientResponseDTO> updatePatient(
-            @PathVariable Long patientId,
-            @Valid @RequestBody PatientRequestDTO request) {
+   @PutMapping("/{patientId}")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<PatientProfileResponseDTO> updatePatient(
+        @PathVariable Long patientId,
+        @Valid @RequestBody AdminPatientUpdateDTO request) {
 
-        return ResponseEntity.ok(
-                patientService.updatePatient(patientId, request));
-    }
+    return ResponseEntity.ok(
+            patientService.updatePatient(patientId, request));
+}
 
     // ==========================================
     // DELETE PATIENT - ADMIN ONLY

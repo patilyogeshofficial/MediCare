@@ -1,9 +1,8 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import {
   UserRound,
   Mail,
-  Phone,
-  MapPin,
   BriefcaseMedical,
   GraduationCap,
   Award,
@@ -12,28 +11,61 @@ import {
   Save,
   X,
   ShieldCheck,
+  IndianRupee,
+  RefreshCw,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-const initialProfile = {
-  fullName: "Dr. Amit Sharma",
-  email: "amit.sharma@medicare.com",
-  phone: "+91 9876543210",
-  specialization: "Cardiology",
-  qualification: "MBBS, MD (Cardiology)",
-  licenseNumber: "MH-MED-2020-12345",
-  experience: "8 Years",
-  gender: "Male",
-  dateOfBirth: "15 June 1988",
-  address: "Pune, Maharashtra, India",
-  about:
-    "Experienced cardiologist dedicated to providing quality healthcare and personalized treatment to patients.",
-};
+import api from "../services/api";
 
 function DoctorProfile() {
-  const [profile, setProfile] = useState(initialProfile);
-  const [formData, setFormData] = useState(initialProfile);
+  const [profile, setProfile] = useState(null);
+  const [formData, setFormData] = useState(null);
+
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  // ==========================================
+  // FETCH LOGGED-IN DOCTOR PROFILE
+  // ==========================================
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get("/doctors/me");
+
+      setProfile(response.data);
+      setFormData({
+        userId: response.data.userId,
+        specializationId: response.data.specializationId,
+        licenseNumber: response.data.licenseNumber || "",
+        qualification: response.data.qualification || "",
+        experienceYears: response.data.experienceYears ?? 0,
+        consultationFee: response.data.consultationFee ?? "",
+      });
+    } catch (err) {
+      console.error("Failed to fetch doctor profile:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to load your profile. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  // ==========================================
+  // HANDLE FORM CHANGES
+  // ==========================================
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,32 +76,116 @@ function DoctorProfile() {
     }));
   };
 
+  // ==========================================
+  // EDIT PROFILE
+  // ==========================================
+
   const handleEdit = () => {
-    setFormData(profile);
+    setFormData({
+      userId: profile.userId,
+      specializationId: profile.specializationId,
+      licenseNumber: profile.licenseNumber || "",
+      qualification: profile.qualification || "",
+      experienceYears: profile.experienceYears ?? 0,
+      consultationFee: profile.consultationFee ?? "",
+    });
+
     setIsEditing(true);
   };
 
+  // ==========================================
+  // CANCEL EDIT
+  // ==========================================
+
   const handleCancel = () => {
-    setFormData(profile);
+    setFormData({
+      userId: profile.userId,
+      specializationId: profile.specializationId,
+      licenseNumber: profile.licenseNumber || "",
+      qualification: profile.qualification || "",
+      experienceYears: profile.experienceYears ?? 0,
+      consultationFee: profile.consultationFee ?? "",
+    });
+
     setIsEditing(false);
   };
 
-  const handleSave = (e) => {
+  // ==========================================
+  // SAVE PROFILE
+  // ==========================================
+
+  const handleSave = async (e) => {
     e.preventDefault();
 
-    if (
-      !formData.fullName.trim() ||
-      !formData.email.trim() ||
-      !formData.phone.trim()
-    ) {
-      toast.error("Please fill in all required fields.");
+    if (!formData.licenseNumber.trim()) {
+      toast.error("Medical license number is required.");
       return;
     }
 
-    setProfile(formData);
-    setIsEditing(false);
-    toast.success("Profile updated successfully!");
+    if (!formData.specializationId || Number(formData.specializationId) <= 0) {
+      toast.error("Please enter a valid specialization ID.");
+      return;
+    }
+
+    if (Number(formData.experienceYears) < 0) {
+      toast.error("Experience cannot be negative.");
+      return;
+    }
+
+    if (
+      formData.consultationFee === "" ||
+      Number(formData.consultationFee) < 0
+    ) {
+      toast.error("Please enter a valid consultation fee.");
+      return;
+    }
+
+    const payload = {
+      userId: profile.userId,
+      specializationId: Number(formData.specializationId),
+      licenseNumber: formData.licenseNumber.trim(),
+      qualification: formData.qualification.trim(),
+      experienceYears: Number(formData.experienceYears),
+      consultationFee: Number(formData.consultationFee),
+    };
+
+    try {
+      setSaving(true);
+
+      const response = await api.put(
+        `/doctors/${profile.doctorId}`,
+        payload
+      );
+
+      setProfile(response.data);
+
+      setFormData({
+        userId: response.data.userId,
+        specializationId: response.data.specializationId,
+        licenseNumber: response.data.licenseNumber || "",
+        qualification: response.data.qualification || "",
+        experienceYears: response.data.experienceYears ?? 0,
+        consultationFee: response.data.consultationFee ?? "",
+      });
+
+      setIsEditing(false);
+
+      toast.success("Profile updated successfully!");
+    } catch (err) {
+      console.error("Failed to update doctor profile:", err);
+
+      toast.error(
+        err.response?.data?.message ||
+          "Unable to update profile. Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // ==========================================
+  // DETAIL ITEM COMPONENT
+  // ==========================================
 
   const DetailItem = ({ icon: Icon, label, value }) => (
     <div className="flex items-start gap-3">
@@ -78,13 +194,20 @@ function DoctorProfile() {
       </div>
 
       <div>
-        <p className="text-xs font-medium text-slate-400">{label}</p>
+        <p className="text-xs font-medium text-slate-400">
+          {label}
+        </p>
+
         <p className="mt-1 text-sm font-semibold text-slate-800">
-          {value || "Not provided"}
+          {value ?? "Not provided"}
         </p>
       </div>
     </div>
   );
+
+  // ==========================================
+  // FORM FIELD COMPONENT
+  // ==========================================
 
   const FormField = ({
     label,
@@ -92,6 +215,9 @@ function DoctorProfile() {
     type = "text",
     value,
     required = false,
+    min,
+    step,
+    hint,
   }) => (
     <div>
       <label
@@ -99,20 +225,81 @@ function DoctorProfile() {
         className="mb-2 block text-sm font-semibold text-slate-700"
       >
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
+
+        {required && (
+          <span className="ml-1 text-red-500">*</span>
+        )}
       </label>
 
       <input
         id={name}
         name={name}
         type={type}
-        value={value}
+        value={value ?? ""}
         onChange={handleChange}
         required={required}
+        min={min}
+        step={step}
         className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
       />
+
+      {hint && (
+        <p className="mt-1 text-xs text-slate-400">
+          {hint}
+        </p>
+      )}
     </div>
   );
+
+  // ==========================================
+  // LOADING STATE
+  // ==========================================
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[350px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" />
+
+          <p className="mt-4 text-sm font-medium text-slate-600">
+            Loading your profile...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ERROR STATE
+  // ==========================================
+
+  if (error || !profile || !formData) {
+    return (
+      <div className="rounded-2xl border border-red-100 bg-white p-10 text-center shadow-sm">
+        <UserRound size={42} className="mx-auto text-red-300" />
+
+        <h2 className="mt-4 text-lg font-bold text-slate-800">
+          Unable to Load Profile
+        </h2>
+
+        <p className="mt-2 text-sm text-red-500">
+          {error || "Profile information is unavailable."}
+        </p>
+
+        <button
+          onClick={fetchProfile}
+          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white hover:bg-cyan-700"
+        >
+          <RefreshCw size={16} />
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // MAIN PAGE
+  // ==========================================
 
   return (
     <div>
@@ -159,7 +346,7 @@ function DoctorProfile() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              {profile.specialization}
+              {profile.specializationName}
             </p>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -181,49 +368,33 @@ function DoctorProfile() {
         <form onSubmit={handleSave}>
           <div className="mt-8 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
             <h2 className="mb-6 text-lg font-bold text-slate-900">
-              Edit Personal Information
+              Edit Professional Information
             </h2>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <FormField
                 label="Full Name"
                 name="fullName"
-                value={formData.fullName}
-                required
+                value={profile.fullName}
+                hint="Name changes are handled by Admin."
               />
 
               <FormField
                 label="Email Address"
                 name="email"
                 type="email"
-                value={formData.email}
+                value={profile.email}
+                hint="Email changes are handled by Admin."
+              />
+
+              <FormField
+                label="Specialization ID"
+                name="specializationId"
+                type="number"
+                value={formData.specializationId}
                 required
-              />
-
-              <FormField
-                label="Phone Number"
-                name="phone"
-                type="tel"
-                value={formData.phone}
-                required
-              />
-
-              <FormField
-                label="Gender"
-                name="gender"
-                value={formData.gender}
-              />
-
-              <FormField
-                label="Date of Birth"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-              />
-
-              <FormField
-                label="Specialization"
-                name="specialization"
-                value={formData.specialization}
+                min="1"
+                hint={`Current specialization: ${profile.specializationName}`}
               />
 
               <FormField
@@ -236,36 +407,27 @@ function DoctorProfile() {
                 label="Medical License Number"
                 name="licenseNumber"
                 value={formData.licenseNumber}
+                required
               />
 
               <FormField
-                label="Experience"
-                name="experience"
-                value={formData.experience}
+                label="Experience (Years)"
+                name="experienceYears"
+                type="number"
+                value={formData.experienceYears}
+                min="0"
+                step="1"
+                required
               />
 
               <FormField
-                label="Address"
-                name="address"
-                value={formData.address}
-              />
-            </div>
-
-            <div className="mt-5">
-              <label
-                htmlFor="about"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                About Me
-              </label>
-
-              <textarea
-                id="about"
-                name="about"
-                rows="4"
-                value={formData.about}
-                onChange={handleChange}
-                className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                label="Consultation Fee (₹)"
+                name="consultationFee"
+                type="number"
+                value={formData.consultationFee}
+                min="0"
+                step="0.01"
+                required
               />
             </div>
 
@@ -273,7 +435,8 @@ function DoctorProfile() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
               >
                 <X size={17} />
                 Cancel
@@ -281,10 +444,11 @@ function DoctorProfile() {
 
               <button
                 type="submit"
-                className="flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Save size={17} />
-                Save Changes
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
@@ -311,27 +475,15 @@ function DoctorProfile() {
               />
 
               <DetailItem
-                icon={Phone}
-                label="Phone Number"
-                value={profile.phone}
+                icon={ShieldCheck}
+                label="User ID"
+                value={profile.userId}
               />
 
               <DetailItem
-                icon={UserRound}
-                label="Gender"
-                value={profile.gender}
-              />
-
-              <DetailItem
-                icon={CalendarDays}
-                label="Date of Birth"
-                value={profile.dateOfBirth}
-              />
-
-              <DetailItem
-                icon={MapPin}
-                label="Address"
-                value={profile.address}
+                icon={BriefcaseMedical}
+                label="Doctor ID"
+                value={profile.doctorId}
               />
             </div>
           </div>
@@ -346,7 +498,7 @@ function DoctorProfile() {
               <DetailItem
                 icon={BriefcaseMedical}
                 label="Specialization"
-                value={profile.specialization}
+                value={profile.specializationName}
               />
 
               <DetailItem
@@ -364,20 +516,19 @@ function DoctorProfile() {
               <DetailItem
                 icon={CalendarDays}
                 label="Experience"
-                value={profile.experience}
+                value={`${profile.experienceYears} Years`}
+              />
+
+              <DetailItem
+                icon={IndianRupee}
+                label="Consultation Fee"
+                value={
+                  profile.consultationFee != null
+                    ? `₹${Number(profile.consultationFee).toLocaleString("en-IN")}`
+                    : "Not provided"
+                }
               />
             </div>
-          </div>
-
-          {/* ABOUT */}
-          <div className="mt-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-slate-900">
-              About Me
-            </h2>
-
-            <p className="text-sm leading-7 text-slate-600">
-              {profile.about}
-            </p>
           </div>
         </>
       )}

@@ -1,3 +1,4 @@
+
 package com.medicare.backend.controller;
 
 import java.util.List;
@@ -5,18 +6,14 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.medicare.backend.dto.NotificationResponseDTO;
 import com.medicare.backend.service.NotificationService;
 
 @RestController
 @RequestMapping("/api/notifications")
-@PreAuthorize("hasRole('PATIENT')")
+@PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR')")
 public class NotificationController {
 
     private final NotificationService notificationService;
@@ -32,11 +29,9 @@ public class NotificationController {
     public ResponseEntity<List<NotificationResponseDTO>> getMyNotifications(
             Authentication authentication) {
 
-        List<NotificationResponseDTO> notifications =
+        return ResponseEntity.ok(
                 notificationService.getMyNotifications(
-                        authentication.getName());
-
-        return ResponseEntity.ok(notifications);
+                        authentication.getName()));
     }
 
     // Get unread notification count
@@ -44,23 +39,42 @@ public class NotificationController {
     public ResponseEntity<Long> getUnreadCount(
             Authentication authentication) {
 
-        long count = notificationService.getUnreadCount(
-                authentication.getName());
-
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(
+                notificationService.getUnreadCount(
+                        authentication.getName()));
     }
 
-    // Mark notification as read
+    // Mark individual notification as read
     @PatchMapping("/{notificationId}/read")
     public ResponseEntity<NotificationResponseDTO> markAsRead(
             @PathVariable Long notificationId,
             Authentication authentication) {
 
-        NotificationResponseDTO response =
+        return ResponseEntity.ok(
                 notificationService.markAsRead(
                         notificationId,
-                        authentication.getName());
+                        authentication.getName()));
+    }
 
-        return ResponseEntity.ok(response);
+    // Mark all notifications as read
+    @PatchMapping("/mark-all-read")
+    public ResponseEntity<Integer> markAllAsRead(
+            Authentication authentication) {
+
+        int updatedCount = notificationService.markAllAsRead(
+                authentication.getName());
+
+        return ResponseEntity.ok(updatedCount);
+    }
+
+    // Clear all notifications
+    @DeleteMapping("/clear-all")
+    public ResponseEntity<Void> clearAllNotifications(
+            Authentication authentication) {
+
+        notificationService.clearAllNotifications(
+                authentication.getName());
+
+        return ResponseEntity.noContent().build();
     }
 }

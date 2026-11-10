@@ -1,3 +1,4 @@
+
 package com.medicare.backend.service;
 
 import java.nio.charset.StandardCharsets;
@@ -7,8 +8,9 @@ import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
-import java.util.Optional;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class PasswordResetService {
 
     private static final int MAX_OTP_REQUESTS_PER_HOUR = 5;
     private static final int OTP_COOLDOWN_SECONDS = 60;
+    private static final int MAX_OTP_ATTEMPTS = 5;
 
     public PasswordResetService(
             UserRepository userRepository,
@@ -49,7 +52,10 @@ public class PasswordResetService {
         this.emailService = emailService;
     }
 
-    // Generate and send OTP
+    // ==========================================
+    // STEP 1: GENERATE AND SEND OTP
+    // ==========================================
+
     @Transactional
     public void generateAndSendOtp(String email) {
 
@@ -57,8 +63,10 @@ public class PasswordResetService {
             return;
         }
 
-        Optional<User> optionalUser = userRepository.findByEmailForUpdate(
-                email.trim().toLowerCase());
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+
+        Optional<User> optionalUser =
+                userRepository.findByEmailForUpdate(normalizedEmail);
 
         if (optionalUser.isEmpty()) {
             return;
@@ -66,19 +74,22 @@ public class PasswordResetService {
 
         User user = optionalUser.get();
 
+        // Only active accounts can reset passwords.
         if (!Boolean.TRUE.equals(user.getIsActive())) {
             return;
         }
 
         OffsetDateTime now = OffsetDateTime.now();
 
-        // Check the latest OTP request, including used OTPs.
-        Optional<PasswordResetOtp> latestOtp = otpRepository.findTopByUserIdOrderByCreatedAtDesc(
-                user.getUserId());
+        // Check latest OTP request, including used OTPs.
+        Optional<PasswordResetOtp> latestOtp =
+                otpRepository.findTopByUserIdOrderByCreatedAtDesc(
+                        user.getUserId());
 
         if (latestOtp.isPresent()) {
 
-            OffsetDateTime lastRequestTime = latestOtp.get().getCreatedAt();
+            OffsetDateTime lastRequestTime =
+                    latestOtp.get().getCreatedAt();
 
             // Enforce 60-second cooldown.
             if (lastRequestTime != null
@@ -89,34 +100,40 @@ public class PasswordResetService {
             }
         }
 
-        // Count OTP requests made during the previous hour.
-        long requestCount = otpRepository.countByUserIdAndCreatedAtAfter(
-                user.getUserId(),
-                now.minusHours(1));
+        // Maximum five requests per hour.
+        long requestCount =
+                otpRepository.countByUserIdAndCreatedAtAfter(
+                        user.getUserId(),
+                        now.minusHours(1));
 
         if (requestCount >= MAX_OTP_REQUESTS_PER_HOUR) {
             return;
         }
 
-        // Generate a secure six-digit OTP.
+        // Generate secure six-digit OTP.
         String otp = String.format(
+                Locale.ROOT,
                 "%06d",
                 SECURE_RANDOM.nextInt(1_000_000));
 
-        // Invalidate the previous active OTP.
-        Optional<PasswordResetOtp> activeOtp = otpRepository.findTopByUserIdAndUsedFalseOrderByCreatedAtDesc(
-                user.getUserId());
+        // Invalidate previous active OTP.
+        Optional<PasswordResetOtp> activeOtp =
+                otpRepository.findTopByUserIdAndUsedFalseOrderByCreatedAtDesc(
+                        user.getUserId());
 
         if (activeOtp.isPresent()) {
+
             PasswordResetOtp previousOtp = activeOtp.get();
+
             previousOtp.setUsed(true);
+
             otpRepository.save(previousOtp);
         }
 
         // Invalidate previous reset tokens.
         tokenRepository.deleteByUserId(user.getUserId());
 
-        // Create and store the new OTP.
+        // Create new OTP record.
         PasswordResetOtp resetOtp = new PasswordResetOtp();
 
         resetOtp.setUserId(user.getUserId());
@@ -131,15 +148,28 @@ public class PasswordResetService {
         emailService.sendOtpEmail(user.getEmail(), otp);
     }
 
-    // Verify OTP and generate reset token
+    // ==========================================
+    // STEP 2: VERIFY OTP AND GENERATE RESET TOKEN
+    // ==========================================
+
     @Transactional
     public Optional<String> verifyOtp(String email, String otp) {
 
-        if (email == null || otp == null || otp.isBlank()) {
+        if (email == null || email.isBlank()
+                || otp == null || otp.isBlank()) {
+
             return Optional.empty();
         }
 
-        Optional<User> optionalUser = userRepository.findByEmail(email.trim().toLowerCase());
+        // Accept only six-digit OTPs.
+        if (!otp.matches("\\d{6}")) {
+            return Optional.empty();
+        }
+
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+
+        Optional<User> optionalUser =
+                userRepository.findByEmail(normalizedEmail);
 
         if (optionalUser.isEmpty()) {
             return Optional.empty();
@@ -151,7 +181,9 @@ public class PasswordResetService {
             return Optional.empty();
         }
 
-        List<PasswordResetOtp> activeOtps = otpRepository.findActiveOtpForUpdate(user.getUserId());
+        // Lock active OTP records during verification.
+        List<PasswordResetOtp> activeOtps =
+                otpRepository.findActiveOtpForUpdate(user.getUserId());
 
         if (activeOtps.isEmpty()) {
             return Optional.empty();
@@ -159,21 +191,29 @@ public class PasswordResetService {
 
         PasswordResetOtp resetOtp = activeOtps.get(0);
 
+        OffsetDateTime now = OffsetDateTime.now();
+
+        // Validate OTP status and expiry.
         if (Boolean.TRUE.equals(resetOtp.getVerified())
-                || resetOtp.getExpiresAt().isBefore(OffsetDateTime.now())
-                || resetOtp.getAttempts() >= 5) {
+                || Boolean.TRUE.equals(resetOtp.getUsed())
+                || resetOtp.getExpiresAt() == null
+                || !resetOtp.getExpiresAt().isAfter(now)
+                || resetOtp.getAttempts() >= MAX_OTP_ATTEMPTS) {
 
             return Optional.empty();
         }
 
+        // Verify OTP hash.
         if (!passwordEncoder.matches(otp, resetOtp.getOtpHash())) {
 
             resetOtp.setAttempts(resetOtp.getAttempts() + 1);
+
             otpRepository.save(resetOtp);
 
             return Optional.empty();
         }
 
+        // Mark OTP as verified and used.
         resetOtp.setVerified(true);
         resetOtp.setUsed(true);
 
@@ -181,6 +221,7 @@ public class PasswordResetService {
 
         // Generate cryptographically secure reset token.
         byte[] randomBytes = new byte[32];
+
         SECURE_RANDOM.nextBytes(randomBytes);
 
         String rawToken = Base64.getUrlEncoder()
@@ -192,46 +233,51 @@ public class PasswordResetService {
 
         resetToken.setUserId(user.getUserId());
         resetToken.setTokenHash(hashToken(rawToken));
-        resetToken.setExpiresAt(OffsetDateTime.now().plusMinutes(10));
+        resetToken.setExpiresAt(now.plusMinutes(10));
         resetToken.setUsed(false);
 
+        // Invalidate previous reset tokens.
         tokenRepository.deleteByUserId(user.getUserId());
+
         tokenRepository.save(resetToken);
 
+        // Return raw token only once to the frontend.
         return Optional.of(rawToken);
     }
 
-    // Reset password using verified token
+    // ==========================================
+    // STEP 3: RESET PASSWORD
+    // ==========================================
+
     @Transactional
     public boolean resetPassword(
             String email,
             String rawToken,
             String newPassword) {
 
-        if (email == null || rawToken == null || newPassword == null) {
+        if (email == null || email.isBlank()
+                || rawToken == null || rawToken.isBlank()
+                || newPassword == null || newPassword.isBlank()) {
+
             return false;
         }
 
-        if (email.isBlank()
-                || rawToken.isBlank()
-                || newPassword.isBlank()) {
+        // Validate password length.
+        int passwordLength = newPassword.codePointCount(
+                0,
+                newPassword.length());
+
+        int passwordByteLength = newPassword.getBytes(
+                StandardCharsets.UTF_8).length;
+
+        if (passwordLength < 8 || passwordByteLength > 72) {
             return false;
         }
 
-       int passwordLength = newPassword.codePointCount(
-        0,
-        newPassword.length()
-);
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
 
-int passwordByteLength = newPassword.getBytes(
-        StandardCharsets.UTF_8
-).length;
-
-if (passwordLength < 8 || passwordByteLength > 72) {
-    return false;
-}
-
-        Optional<User> optionalUser = userRepository.findByEmail(email.trim().toLowerCase());
+        Optional<User> optionalUser =
+                userRepository.findByEmail(normalizedEmail);
 
         if (optionalUser.isEmpty()) {
             return false;
@@ -243,9 +289,11 @@ if (passwordLength < 8 || passwordByteLength > 72) {
             return false;
         }
 
+        // Hash submitted token before database lookup.
         String tokenHash = hashToken(rawToken);
 
-        Optional<PasswordResetToken> optionalToken = tokenRepository.findByTokenHashForUpdate(tokenHash);
+        Optional<PasswordResetToken> optionalToken =
+                tokenRepository.findByTokenHashForUpdate(tokenHash);
 
         if (optionalToken.isEmpty()) {
             return false;
@@ -253,14 +301,20 @@ if (passwordLength < 8 || passwordByteLength > 72) {
 
         PasswordResetToken resetToken = optionalToken.get();
 
+        OffsetDateTime now = OffsetDateTime.now();
+
+        // Validate token ownership, usage and expiration.
         if (!resetToken.getUserId().equals(user.getUserId())
-                || resetToken.getExpiresAt().isBefore(OffsetDateTime.now())) {
+                || Boolean.TRUE.equals(resetToken.getUsed())
+                || resetToken.getExpiresAt() == null
+                || !resetToken.getExpiresAt().isAfter(now)) {
 
             return false;
         }
 
-        // Update password with BCrypt.
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        // Update password using BCrypt.
+        user.setPasswordHash(
+                passwordEncoder.encode(newPassword));
 
         userRepository.save(user);
 
@@ -272,11 +326,16 @@ if (passwordLength < 8 || passwordByteLength > 72) {
         return true;
     }
 
-    // SHA-256 token hashing
+    // ==========================================
+    // SHA-256 TOKEN HASHING
+    // ==========================================
+
     private String hashToken(String rawToken) {
 
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+
+            MessageDigest digest =
+                    MessageDigest.getInstance("SHA-256");
 
             byte[] hash = digest.digest(
                     rawToken.getBytes(StandardCharsets.UTF_8));
@@ -284,6 +343,7 @@ if (passwordLength < 8 || passwordByteLength > 72) {
             return HexFormat.of().formatHex(hash);
 
         } catch (NoSuchAlgorithmException exception) {
+
             throw new IllegalStateException(
                     "SHA-256 algorithm is unavailable.",
                     exception);

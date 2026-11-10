@@ -27,15 +27,16 @@ public class AdminDashboardService {
 
     public AdminDashboardSummaryDTO getDashboardSummary() {
 
-        return new AdminDashboardSummaryDTO(
-                patientRepository.count(),
-                doctorRepository.count(),
-                appointmentRepository.count(),
+    return new AdminDashboardSummaryDTO(
+            patientRepository.count(),
+            doctorRepository.count(),
+            appointmentRepository.count(),
 
-                appointmentRepository.countByStatus("PENDING"),
-                appointmentRepository.countByStatus("CONFIRMED"),
-                appointmentRepository.countByStatus("COMPLETED"),
-                appointmentRepository.countByStatus("CANCELLED")
-        );
-    }
+            appointmentRepository.countByStatus("PENDING"),
+            appointmentRepository.countByStatus("CONFIRMED"),
+            appointmentRepository.countByStatus("COMPLETED"),
+            appointmentRepository.countByStatus("CANCELLED"),
+            appointmentRepository.countByStatus("REJECTED")
+    );
+}
 }

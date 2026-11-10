@@ -4,34 +4,36 @@ import toast from "react-hot-toast";
 import api from "../services/api";
 
 function Contact() {
+  const inputClassName =
+    "block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition duration-200 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100";
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const form = e.currentTarget;
-  const formData = new FormData(form);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
 
-  const contactData = {
-    name: formData.get("name").trim(),
-    email: formData.get("email").trim(),
-    phone: formData.get("phone").trim(),
-    subject: formData.get("subject").trim(),
-    message: formData.get("message").trim(),
+    const contactData = {
+      name: formData.get("name").trim(),
+      email: formData.get("email").trim(),
+      phone: formData.get("phone").trim(),
+      subject: formData.get("subject").trim(),
+      message: formData.get("message").trim(),
+    };
+
+    try {
+      await api.post("/contact-messages", contactData);
+
+      toast.success("Your message has been sent successfully!");
+      form.reset();
+    } catch (error) {
+      console.error("Contact form submission error:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "Unable to send your message. Please try again."
+      );
+    }
   };
-
-  try {
-    await api.post("/contact-messages", contactData);
-
-    toast.success("Your message has been sent successfully!");
-    form.reset();
-  } catch (error) {
-    console.error("Contact form submission error:", error);
-
-    toast.error(
-      error.response?.data?.message ||
-      "Unable to send your message. Please try again."
-    );
-  }
-};
 
   return (
     <section
@@ -179,13 +181,16 @@ function Contact() {
                   </label>
 
                   <input
-  type="text"
-  name="name"
-  minLength={3}
-  maxLength={50}
-  pattern="[A-Za-z ]{3,50}"
-  required
-/>
+                    id="contact-name"
+                    type="text"
+                    name="name"
+                    minLength={3}
+                    maxLength={50}
+                    pattern="[A-Za-z ]{3,50}"
+                    placeholder="Enter your full name"
+                    className={inputClassName}
+                    required
+                  />
                 </div>
 
                 <div>
@@ -196,12 +201,15 @@ function Contact() {
                     Email Address
                   </label>
 
-                 <input
-  type="email"
-  name="email"
-  maxLength={100}
-  required
-/>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    name="email"
+                    maxLength={100}
+                    placeholder="Enter your email address"
+                    className={inputClassName}
+                    required
+                  />
                 </div>
 
               </div>
@@ -218,14 +226,17 @@ function Contact() {
                   </label>
 
                   <input
-  type="tel"
-  name="phone"
-  minLength={10}
-  maxLength={10}
-  pattern="[0-9]{10}"
-  inputMode="numeric"
-  required
-/>
+                    id="contact-phone"
+                    type="tel"
+                    name="phone"
+                    minLength={10}
+                    maxLength={10}
+                    pattern="[0-9]{10}"
+                    inputMode="numeric"
+                    placeholder="Enter your phone number"
+                    className={inputClassName}
+                    required
+                  />
                 </div>
 
                 <div>
@@ -237,12 +248,15 @@ function Contact() {
                   </label>
 
                   <input
-  type="text"
-  name="subject"
-  minLength={3}
-  maxLength={100}
-  required
-/>
+                    id="contact-subject"
+                    type="text"
+                    name="subject"
+                    minLength={3}
+                    maxLength={100}
+                    placeholder="Enter message subject"
+                    className={inputClassName}
+                    required
+                  />
                 </div>
 
               </div>
@@ -256,12 +270,16 @@ function Contact() {
                   Your Message
                 </label>
 
-               <textarea
-  name="message"
-  minLength={10}
-  maxLength={1000}
-  required
-/>
+                <textarea
+                  id="contact-message"
+                  name="message"
+                  minLength={10}
+                  maxLength={1000}
+                  rows={5}
+                  placeholder="Write your message here..."
+                  className={`${inputClassName} min-h-32 resize-y`}
+                  required
+                />
               </div>
 
               {/* SUBMIT BUTTON */}

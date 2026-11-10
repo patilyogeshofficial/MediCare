@@ -3,32 +3,41 @@ package com.medicare.backend.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class ContactMessageRequestDTO {
 
-    @Pattern(regexp = "^[A-Za-z][A-Za-z '-]*$", message = "Name can contain only letters, spaces, apostrophes and hyphens")
     @NotBlank(message = "Name is required")
-    @Size(min = 3, max = 50, message = "Name must be between 3 and 50 characters")
-    @Pattern(regexp = "^[A-Za-z ]+$", message = "Name can contain only letters and spaces")
+    @Size(min = 3, max = 50,
+            message = "Name must be between 3 and 50 characters")
+    @Pattern(
+            regexp = "^[\\p{L}\\p{M}][\\p{L}\\p{M} '-]*$",
+            message = "Name can contain only letters, spaces, apostrophes and hyphens"
+    )
     private String name;
 
     @NotBlank(message = "Email is required")
     @Email(message = "Please enter a valid email address")
-    @Size(max = 100, message = "Email cannot exceed 100 characters")
+    @Size(max = 100,
+            message = "Email cannot exceed 100 characters")
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must contain exactly 10 digits")
+    @Pattern(
+            regexp = "^[0-9]{10}$",
+            message = "Phone number must contain exactly 10 digits"
+    )
     private String phone;
 
     @NotBlank(message = "Subject is required")
-    @Size(min = 3, max = 100, message = "Subject must be between 3 and 100 characters")
+    @Size(min = 3, max = 100,
+            message = "Subject must be between 3 and 100 characters")
     private String subject;
 
     @NotBlank(message = "Message is required")
-    @Size(min = 10, max = 1000, message = "Message must be between 10 and 1000 characters")
+    @Size(min = 10, max = 1000,
+            message = "Message must be between 10 and 1000 characters")
     private String message;
 
     // Getters and Setters

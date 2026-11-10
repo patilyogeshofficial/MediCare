@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import {
   Users,
   UserRound,
@@ -12,100 +13,135 @@ import {
   Filter,
   Clock,
   MapPin,
+  RefreshCw,
 } from "lucide-react";
 
-const initialPatients = [
-  {
-    id: "PAT001",
-    name: "Rahul Sharma",
-    age: 32,
-    gender: "Male",
-    phone: "+91 9876543210",
-    email: "rahul@example.com",
-    bloodGroup: "B+",
-    lastVisit: "05 Nov 2026",
-    totalAppointments: 8,
-    condition: "General Checkup",
-    address: "Pune, Maharashtra",
-  },
-  {
-    id: "PAT002",
-    name: "Priya Deshmukh",
-    age: 27,
-    gender: "Female",
-    phone: "+91 9876543211",
-    email: "priya@example.com",
-    bloodGroup: "O+",
-    lastVisit: "04 Nov 2026",
-    totalAppointments: 5,
-    condition: "Migraine",
-    address: "Pimpri, Maharashtra",
-  },
-  {
-    id: "PAT003",
-    name: "Rohan More",
-    age: 45,
-    gender: "Male",
-    phone: "+91 9876543212",
-    email: "rohan@example.com",
-    bloodGroup: "A+",
-    lastVisit: "02 Nov 2026",
-    totalAppointments: 12,
-    condition: "Regular Follow-up",
-    address: "Nashik, Maharashtra",
-  },
-  {
-    id: "PAT004",
-    name: "Neha Patil",
-    age: 29,
-    gender: "Female",
-    phone: "+91 9876543213",
-    email: "neha@example.com",
-    bloodGroup: "AB+",
-    lastVisit: "01 Nov 2026",
-    totalAppointments: 3,
-    condition: "Fever",
-    address: "Dhule, Maharashtra",
-  },
-  {
-    id: "PAT005",
-    name: "Amit Joshi",
-    age: 38,
-    gender: "Male",
-    phone: "+91 9876543214",
-    email: "amit@example.com",
-    bloodGroup: "O-",
-    lastVisit: "30 Oct 2026",
-    totalAppointments: 6,
-    condition: "Blood Pressure",
-    address: "Jalgaon, Maharashtra",
-  },
-  {
-    id: "PAT006",
-    name: "Sneha Kulkarni",
-    age: 25,
-    gender: "Female",
-    phone: "+91 9876543215",
-    email: "sneha@example.com",
-    bloodGroup: "B-",
-    lastVisit: "28 Oct 2026",
-    totalAppointments: 4,
-    condition: "General Consultation",
-    address: "Mumbai, Maharashtra",
-  },
-];
+import api from "../services/api";
 
 function DoctorPatients() {
-  const [patients] = useState(initialPatients);
+  const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("All");
   const [selectedPatient, setSelectedPatient] = useState(null);
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // ==========================================
+  // FORMAT DATE
+  // ==========================================
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+
+    const parsedDate = new Date(`${date}T00:00:00`);
+
+    if (Number.isNaN(parsedDate.getTime())) return "N/A";
+
+    return parsedDate.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  // ==========================================
+  // CALCULATE PATIENT AGE
+  // ==========================================
+
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return "N/A";
+
+    const today = new Date();
+    const birth = new Date(`${dateOfBirth}T00:00:00`);
+
+    if (Number.isNaN(birth.getTime())) return "N/A";
+
+    let age = today.getFullYear() - birth.getFullYear();
+
+    const monthDifference = today.getMonth() - birth.getMonth();
+
+    if (
+      monthDifference < 0 ||
+      (monthDifference === 0 && today.getDate() < birth.getDate())
+    ) {
+      age--;
+    }
+
+    return age >= 0 ? age : "N/A";
+  };
+
+  // ==========================================
+  // FETCH DOCTOR'S PATIENTS FROM BACKEND
+  // ==========================================
+
+  const fetchPatients = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get("/appointments/my-patients");
+
+      const formattedPatients = response.data.map((patient) => {
+        const genderValue = patient.gender?.toUpperCase();
+
+        let gender = "Other";
+
+        if (genderValue === "MALE") {
+          gender = "Male";
+        } else if (genderValue === "FEMALE") {
+          gender = "Female";
+        }
+
+        return {
+          id: `PAT${String(patient.patientId).padStart(3, "0")}`,
+          patientId: patient.patientId,
+          name: patient.fullName || "Unknown Patient",
+          age: calculateAge(patient.dateOfBirth),
+          gender,
+          phone: patient.phone || "N/A",
+          email: patient.email || "N/A",
+          bloodGroup: patient.bloodGroup || "N/A",
+          lastVisit: formatDate(patient.lastVisit),
+          totalAppointments: Number(patient.totalAppointments) || 0,
+          condition: patient.condition || "N/A",
+          address: patient.address || "N/A",
+        };
+      });
+
+      setPatients(formattedPatients);
+    } catch (err) {
+      console.error("Failed to fetch doctor patients:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to load patient records. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==========================================
+  // LOAD PATIENTS ON PAGE LOAD
+  // ==========================================
+
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  // ==========================================
+  // SEARCH AND GENDER FILTER
+  // ==========================================
+
   const filteredPatients = useMemo(() => {
     return patients.filter((patient) => {
+      const searchValue = search.trim().toLowerCase();
+
       const matchesSearch =
-        patient.name.toLowerCase().includes(search.toLowerCase()) ||
-        patient.id.toLowerCase().includes(search.toLowerCase());
+        patient.name.toLowerCase().includes(searchValue) ||
+        patient.id.toLowerCase().includes(searchValue) ||
+        String(patient.patientId).includes(searchValue);
 
       const matchesGender =
         genderFilter === "All" || patient.gender === genderFilter;
@@ -113,6 +149,10 @@ function DoctorPatients() {
       return matchesSearch && matchesGender;
     });
   }, [patients, search, genderFilter]);
+
+  // ==========================================
+  // PATIENT STATISTICS
+  // ==========================================
 
   const stats = [
     {
@@ -148,16 +188,74 @@ function DoctorPatients() {
     },
   ];
 
+  // ==========================================
+  // LOADING STATE
+  // ==========================================
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[350px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" />
+          <p className="mt-4 text-sm font-medium text-slate-600">
+            Loading patient records...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ERROR STATE
+  // ==========================================
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-100 bg-white p-10 text-center shadow-sm">
+        <Users size={42} className="mx-auto text-red-300" />
+
+        <h2 className="mt-4 text-lg font-bold text-slate-800">
+          Unable to Load Patients
+        </h2>
+
+        <p className="mt-2 text-sm text-red-500">{error}</p>
+
+        <button
+          onClick={fetchPatients}
+          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+        >
+          <RefreshCw size={16} />
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // MAIN PAGE
+  // ==========================================
+
   return (
     <div>
       {/* PAGE INTRO */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-extrabold text-slate-900">
-          My Patients
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          View and manage information about your assigned patients.
-        </p>
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900">
+            My Patients
+          </h1>
+
+          <p className="mt-1 text-sm text-slate-500">
+            View and manage information about your assigned patients.
+          </p>
+        </div>
+
+        <button
+          onClick={fetchPatients}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-300 hover:text-cyan-600"
+        >
+          <RefreshCw size={16} />
+          Refresh
+        </button>
       </div>
 
       {/* STATISTICS */}
@@ -196,6 +294,7 @@ function DoctorPatients() {
           <h2 className="text-lg font-bold text-slate-900">
             Patient Records
           </h2>
+
           <p className="mt-1 text-sm text-slate-500">
             Search and view your patient information.
           </p>
@@ -232,6 +331,7 @@ function DoctorPatients() {
               <option value="All">All Gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
+              <option value="Other">Other</option>
             </select>
           </div>
         </div>
@@ -256,13 +356,13 @@ function DoctorPatients() {
             <tbody className="divide-y divide-slate-100">
               {filteredPatients.map((patient) => (
                 <tr
-                  key={patient.id}
+                  key={patient.patientId}
                   className="transition hover:bg-slate-50"
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-50 font-bold text-cyan-700">
-                        {patient.name.charAt(0)}
+                        {patient.name.charAt(0).toUpperCase()}
                       </div>
 
                       <span className="text-sm font-semibold text-slate-800">
@@ -276,7 +376,10 @@ function DoctorPatients() {
                   </td>
 
                   <td className="px-6 py-4 text-sm text-slate-600">
-                    {patient.age} years
+                    {patient.age === "N/A"
+                      ? "N/A"
+                      : `${patient.age} years`}
+
                     <p className="mt-1 text-xs text-slate-400">
                       {patient.gender}
                     </p>
@@ -313,11 +416,17 @@ function DoctorPatients() {
                       size={40}
                       className="mx-auto text-slate-300"
                     />
+
                     <p className="mt-3 font-semibold text-slate-600">
-                      No patients found
+                      {patients.length === 0
+                        ? "No patients assigned yet"
+                        : "No patients found"}
                     </p>
+
                     <p className="mt-1 text-sm text-slate-400">
-                      Try changing your search or filter.
+                      {patients.length === 0
+                        ? "Patients with appointments will appear here."
+                        : "Try changing your search or filter."}
                     </p>
                   </td>
                 </tr>
@@ -335,11 +444,13 @@ function DoctorPatients() {
       {selectedPatient && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl">
+            {/* MODAL HEADER */}
             <div className="flex items-center justify-between border-b border-slate-100 p-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
                   Patient Details
                 </h2>
+
                 <p className="mt-1 text-sm text-slate-500">
                   {selectedPatient.id}
                 </p>
@@ -354,23 +465,37 @@ function DoctorPatients() {
               </button>
             </div>
 
+            {/* MODAL BODY */}
             <div className="p-6">
+              {/* PATIENT BASIC INFORMATION */}
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-50 text-2xl font-bold text-cyan-700">
-                  {selectedPatient.name.charAt(0)}
+                  {selectedPatient.name.charAt(0).toUpperCase()}
                 </div>
 
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">
                     {selectedPatient.name}
                   </h3>
+
                   <p className="text-sm text-slate-500">
-                    {selectedPatient.age} years · {selectedPatient.gender}
+                    {selectedPatient.age === "N/A"
+                      ? "Age unavailable"
+                      : `${selectedPatient.age} years`}{" "}
+                    · {selectedPatient.gender}
                   </p>
                 </div>
               </div>
 
+              {/* PATIENT STATISTICS */}
               <div className="mt-7 grid grid-cols-2 gap-5">
+                <div>
+                  <p className="text-xs text-slate-400">Patient ID</p>
+                  <p className="mt-1 font-semibold text-slate-800">
+                    {selectedPatient.patientId}
+                  </p>
+                </div>
+
                 <div>
                   <p className="text-xs text-slate-400">Blood Group</p>
                   <p className="mt-1 font-semibold text-slate-800">
@@ -394,7 +519,7 @@ function DoctorPatients() {
                   </p>
                 </div>
 
-                <div>
+                <div className="col-span-2">
                   <p className="text-xs text-slate-400">
                     Recent Consultation
                   </p>
@@ -404,30 +529,35 @@ function DoctorPatients() {
                 </div>
               </div>
 
+              {/* CONTACT INFORMATION */}
               <div className="mt-7 space-y-4 border-t border-slate-100 pt-5">
                 <div className="flex items-center gap-3">
-                  <Phone size={18} className="text-cyan-600" />
+                  <Phone size={18} className="shrink-0 text-cyan-600" />
+
                   <span className="text-sm text-slate-600">
                     {selectedPatient.phone}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Mail size={18} className="text-cyan-600" />
+                  <Mail size={18} className="shrink-0 text-cyan-600" />
+
                   <span className="break-all text-sm text-slate-600">
                     {selectedPatient.email}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <MapPin size={18} className="text-cyan-600" />
+                  <MapPin size={18} className="shrink-0 text-cyan-600" />
+
                   <span className="text-sm text-slate-600">
                     {selectedPatient.address}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Clock size={18} className="text-cyan-600" />
+                  <Clock size={18} className="shrink-0 text-cyan-600" />
+
                   <span className="text-sm text-slate-600">
                     {selectedPatient.totalAppointments} appointments recorded
                   </span>

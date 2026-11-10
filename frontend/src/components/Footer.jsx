@@ -1,30 +1,65 @@
 
+import { useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { HeartPulse } from "lucide-react";
 
 function Footer() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const linkClass =
-    "transition-colors duration-200 hover:text-cyan-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400 rounded-sm";
+    "rounded-sm text-slate-300 transition-colors duration-200 hover:text-cyan-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400";
 
-  const handleScroll = (event, targetId) => {
-    event.preventDefault();
+  // Scroll to Home Page sections after navigation.
+  useEffect(() => {
+    if (location.pathname !== "/" || !location.hash) return;
 
-    const target = document.getElementById(targetId);
+    const targetId = decodeURIComponent(location.hash.slice(1));
 
-    if (target) {
-      target.scrollIntoView({
+    const frameId = requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
+    });
 
-      window.history.replaceState(null, "", `#${targetId}`);
+    return () => cancelAnimationFrame(frameId);
+  }, [location.pathname, location.hash]);
+
+  // Navigate to a Home Page section.
+  const handleScroll = (event, targetId) => {
+    event.preventDefault();
+
+    if (location.pathname !== "/") {
+      navigate(`/#${targetId}`);
+      return;
     }
+
+    document.getElementById(targetId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    navigate(`/#${targetId}`, { replace: true });
   };
 
   const sectionLink = (targetId) => ({
-    href: `#${targetId}`,
+    href: `/#${targetId}`,
     onClick: (event) => handleScroll(event, targetId),
     className: linkClass,
   });
+
+  // Individual healthcare service pages.
+  const healthcareServices = [
+    { name: "Outpatient Department", slug: "outpatient" },
+    { name: "Emergency Care", slug: "emergency-care" },
+    { name: "Nursing Services", slug: "nursing" },
+    { name: "Pharmacy Services", slug: "pharmacy" },
+    { name: "Laboratory & Diagnostics", slug: "laboratory" },
+    { name: "Inpatient Care", slug: "inpatient" },
+    { name: "Health Checkups", slug: "health-checkups" },
+    { name: "Medical Records", slug: "medical-records" },
+  ];
 
   return (
     <footer className="bg-slate-950 text-slate-300">
@@ -36,7 +71,7 @@ function Footer() {
           {/* BRAND INFORMATION */}
           <div>
             <a
-              href="#home"
+              href="/#home"
               onClick={(event) => handleScroll(event, "home")}
               aria-label="MediCare - Back to Home"
               className="mb-6 inline-flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400"
@@ -76,7 +111,11 @@ function Footer() {
               <li><a {...sectionLink("about")}>About Us</a></li>
               <li><a {...sectionLink("services")}>Specialities</a></li>
               <li><a {...sectionLink("doctors")}>Our Doctors</a></li>
-              <li><a {...sectionLink("medical-team")}>Medical Team</a></li>
+              <li>
+                <Link to="/doctors" className={linkClass}>
+                  Medical Team
+                </Link>
+              </li>
               <li><a {...sectionLink("contact")}>Contact Us</a></li>
             </ul>
           </div>
@@ -88,25 +127,24 @@ function Footer() {
             </h3>
 
             <ul className="space-y-4 text-sm">
-              <li>
-                <a {...sectionLink("healthcare-services")}>OPD Services</a>
-              </li>
-              <li>
-                <a {...sectionLink("healthcare-services")}>Emergency Care</a>
-              </li>
-              <li>
-                <a {...sectionLink("healthcare-services")}>Nursing Services</a>
-              </li>
-              <li>
-                <a {...sectionLink("healthcare-services")}>Pharmacy</a>
-              </li>
-              <li>
-                <a {...sectionLink("healthcare-services")}>Laboratory</a>
-              </li>
-              <li>
-                <a {...sectionLink("healthcare-services")}>Health Checkups</a>
-              </li>
+              {healthcareServices.map((service) => (
+                <li key={service.slug}>
+                  <Link
+                    to={`/healthcare-services/${service.slug}`}
+                    className={linkClass}
+                  >
+                    {service.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
+
+            <Link
+              to="/healthcare-services"
+              className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-cyan-400 transition hover:text-cyan-300"
+            >
+              Explore All Services →
+            </Link>
           </div>
 
           {/* CONTACT INFORMATION */}
@@ -120,7 +158,7 @@ function Footer() {
                 <p className="mb-1 text-slate-500">Email</p>
                 <a
                   href="mailto:contact@medicare.com"
-                  className={`${linkClass} break-all text-slate-300`}
+                  className={`${linkClass} break-all`}
                 >
                   contact@medicare.com
                 </a>
@@ -130,7 +168,7 @@ function Footer() {
                 <p className="mb-1 text-slate-500">Phone</p>
                 <a
                   href="tel:+918010729955"
-                  className={`${linkClass} text-slate-300`}
+                  className={linkClass}
                 >
                   +91 8010729955
                 </a>
@@ -143,7 +181,6 @@ function Footer() {
               </div>
             </div>
           </div>
-
         </div>
 
         {/* FOOTER BOTTOM */}
@@ -160,14 +197,12 @@ function Footer() {
               <a {...sectionLink("home")}>Back to Top ↑</a>
             </div>
           </nav>
-
         </div>
 
         {/* FOOTER CREDIT */}
         <p className="mt-8 text-center text-xs text-slate-600">
           Designed and developed with care for better healthcare experiences.
         </p>
-
       </div>
     </footer>
   );

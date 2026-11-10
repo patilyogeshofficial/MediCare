@@ -8,6 +8,7 @@ import {
   Users,
   ArrowRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 function WhyChooseUs() {
   const features = [
@@ -35,7 +36,7 @@ function WhyChooseUs() {
     {
       title: "Easy Appointment Booking",
       description:
-        "Find doctors, explore specialities and manage appointments conveniently.",
+        "Find doctors, explore specialities and book appointments conveniently.",
       icon: CalendarCheck2,
       color: "bg-green-50 text-green-600",
     },
@@ -49,26 +50,11 @@ function WhyChooseUs() {
     {
       title: "Comprehensive Healthcare",
       description:
-        "Access multiple healthcare departments and services through one platform.",
+        "Explore multiple healthcare departments and services through one platform.",
       icon: Users,
       color: "bg-cyan-50 text-cyan-600",
     },
   ];
-
-  const handleExploreDoctors = (event) => {
-    event.preventDefault();
-
-    const doctorsSection = document.getElementById("doctors");
-
-    if (doctorsSection) {
-      doctorsSection.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-
-      window.history.replaceState(null, "", "#doctors");
-    }
-  };
 
   return (
     <section
@@ -123,24 +109,24 @@ function WhyChooseUs() {
         </div>
 
         {/* BOTTOM CTA */}
-        <div className="mt-14 rounded-3xl bg-gradient-to-r from-cyan-600 to-blue-700 px-8 py-12 text-center text-white sm:px-14">
+        <div className="relative mt-14 overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-600 to-blue-700 px-6 py-14 text-center text-white sm:px-14">
           <h3 className="text-balance text-2xl font-extrabold sm:text-3xl">
             Your Wellbeing Is Our Priority
           </h3>
 
           <p className="mx-auto mt-4 max-w-2xl leading-7 text-cyan-50">
             Take the next step towards a more convenient healthcare
-            experience with MediCare.
+            experience with MediCare. Connect with qualified doctors
+            and find the right care for your needs.
           </p>
 
-          <a
-            href="#doctors"
-            onClick={handleExploreDoctors}
-            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold text-cyan-700 transition hover:bg-cyan-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          <Link
+            to="/doctors"
+            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold text-cyan-700 shadow-md transition duration-300 hover:-translate-y-1 hover:bg-cyan-50 hover:shadow-lg"
           >
-            Explore Our Doctors
+            Find a Doctor
             <ArrowRight size={18} aria-hidden="true" />
-          </a>
+          </Link>
         </div>
 
       </div>

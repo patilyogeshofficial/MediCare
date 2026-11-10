@@ -1,3 +1,4 @@
+
 package com.medicare.backend.controller;
 
 import java.util.List;
@@ -20,63 +21,89 @@ public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
 
-    public PrescriptionController(PrescriptionService prescriptionService) {
+    public PrescriptionController(
+            PrescriptionService prescriptionService) {
         this.prescriptionService = prescriptionService;
     }
 
-    // Get prescriptions belonging to the logged-in patient
+    // ==========================================
+    // GET MY PRESCRIPTIONS (PATIENT ONLY)
+    // ==========================================
+
     @GetMapping("/my")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<List<PrescriptionResponseDTO>> getMyPrescriptions(
             Authentication authentication) {
 
         return ResponseEntity.ok(
-                prescriptionService.getMyPrescriptions(authentication.getName())
-        );
+                prescriptionService.getMyPrescriptions(
+                        authentication.getName()));
     }
 
-    // Get all prescriptions - Admin only
+    // ==========================================
+    // GET ALL PRESCRIPTIONS (ADMIN ONLY)
+    // ==========================================
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PrescriptionResponseDTO>> getAllPrescriptions() {
-        return ResponseEntity.ok(prescriptionService.getAllPrescriptions());
+
+        return ResponseEntity.ok(
+                prescriptionService.getAllPrescriptions());
     }
 
-    // Get prescription by ID - Admin only
+    // ==========================================
+    // GET PRESCRIPTION BY ID (ADMIN ONLY)
+    // ==========================================
+
     @GetMapping("/{prescriptionId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PrescriptionResponseDTO> getPrescriptionById(
             @PathVariable Long prescriptionId) {
 
         return ResponseEntity.ok(
-                prescriptionService.getPrescriptionById(prescriptionId)
-        );
+                prescriptionService.getPrescriptionById(
+                        prescriptionId));
     }
 
-    // Get prescription by appointment ID - Admin only
+    // ==========================================
+    // GET PRESCRIPTION BY APPOINTMENT (ADMIN ONLY)
+    // ==========================================
+
     @GetMapping("/appointment/{appointmentId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PrescriptionResponseDTO> getPrescriptionByAppointmentId(
             @PathVariable Long appointmentId) {
 
         return ResponseEntity.ok(
-                prescriptionService.getPrescriptionByAppointmentId(appointmentId)
-        );
+                prescriptionService.getPrescriptionByAppointmentId(
+                        appointmentId));
     }
 
-    // Create prescription - Admin only for now
+    // ==========================================
+    // CREATE PRESCRIPTION (DOCTOR ONLY)
+    // ==========================================
+
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<PrescriptionResponseDTO> createPrescription(
-            @Valid @RequestBody PrescriptionRequestDTO requestDTO) {
+            @Valid @RequestBody PrescriptionRequestDTO requestDTO,
+            Authentication authentication) {
 
         PrescriptionResponseDTO response =
-                prescriptionService.createPrescription(requestDTO);
+                prescriptionService.createPrescription(
+                        requestDTO,
+                        authentication.getName());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
-    // Update prescription - Admin only for now
+    // ==========================================
+    // UPDATE PRESCRIPTION (ADMIN ONLY)
+    // ==========================================
+
     @PutMapping("/{prescriptionId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PrescriptionResponseDTO> updatePrescription(
@@ -84,11 +111,15 @@ public class PrescriptionController {
             @Valid @RequestBody PrescriptionRequestDTO requestDTO) {
 
         return ResponseEntity.ok(
-                prescriptionService.updatePrescription(prescriptionId, requestDTO)
-        );
+                prescriptionService.updatePrescription(
+                        prescriptionId,
+                        requestDTO));
     }
 
-    // Delete prescription - Admin only
+    // ==========================================
+    // DELETE PRESCRIPTION (ADMIN ONLY)
+    // ==========================================
+
     @DeleteMapping("/{prescriptionId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deletePrescription(
@@ -98,4 +129,16 @@ public class PrescriptionController {
 
         return ResponseEntity.noContent().build();
     }
+    // Check prescription existence - DOCTOR only
+@GetMapping("/appointment/{appointmentId}/my")
+@PreAuthorize("hasRole('DOCTOR')")
+public ResponseEntity<Boolean> hasPrescription(
+        @PathVariable Long appointmentId,
+        Authentication authentication) {
+
+    return ResponseEntity.ok(
+            prescriptionService.hasPrescription(
+                    appointmentId,
+                    authentication.getName()));
+}
 }

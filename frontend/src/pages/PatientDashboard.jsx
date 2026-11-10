@@ -1699,64 +1699,56 @@ function PatientDashboard() {
           )}
 
 
+
           {/* ===================================== */}
           {/* MY PRESCRIPTIONS */}
           {/* ===================================== */}
 
           {activeMenu === "My Prescriptions" && (
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">
-                My Prescriptions
-              </h1>
+              <div className="mb-8">
+                <h1 className="text-2xl font-extrabold text-slate-900">
+                  My Prescriptions
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  View your prescriptions, medicines and doctor's instructions.
+                </p>
+              </div>
 
-              <p className="mt-1 text-sm text-slate-500">
-                View your medical prescriptions, medicines and doctor's instructions.
-              </p>
-
-              {/* Loading */}
               {prescriptionsLoading && (
-                <div className="mt-8 rounded-2xl border border-slate-100 bg-white p-10 text-center shadow-sm">
-                  <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600"></div>
-
-                  <p className="mt-4 text-sm font-medium text-slate-500">
+                <div className="rounded-2xl border border-slate-100 bg-white p-10 text-center shadow-sm">
+                  <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" />
+                  <p className="mt-4 text-sm text-slate-500">
                     Loading your prescriptions...
                   </p>
                 </div>
               )}
 
-              {/* Error */}
               {!prescriptionsLoading && prescriptionsError && (
-                <div className="mt-8 rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
-                  <AlertCircle size={36} className="mx-auto text-red-500" />
-
-                  <p className="mt-3 font-semibold text-red-700">
+                <div className="rounded-2xl border border-red-100 bg-red-50 p-6">
+                  <p className="font-semibold text-red-700">
                     Unable to load prescriptions
                   </p>
-
                   <p className="mt-2 text-sm text-red-600">
                     {prescriptionsError}
                   </p>
-
                   <button
                     onClick={() => setActiveMenu("Dashboard")}
-                    className="mt-4 rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                    className="mt-4 rounded-lg bg-cyan-600 px-5 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
                   >
                     Back to Dashboard
                   </button>
                 </div>
               )}
 
-              {/* Empty State */}
               {!prescriptionsLoading &&
                 !prescriptionsError &&
                 prescriptions.length === 0 && (
-                  <div className="mt-8 rounded-2xl border border-slate-100 bg-white p-10 text-center shadow-sm">
+                  <div className="rounded-2xl border border-slate-100 bg-white p-10 text-center shadow-sm">
                     <FileText size={44} className="mx-auto text-cyan-600" />
-
                     <h3 className="mt-4 font-bold text-slate-800">
                       No prescriptions available
                     </h3>
-
                     <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
                       Your prescriptions will appear here once your doctor
                       creates them after your consultation.
@@ -1764,15 +1756,15 @@ function PatientDashboard() {
                   </div>
                 )}
 
-              {/* Prescription Cards */}
               {!prescriptionsLoading &&
                 !prescriptionsError &&
                 prescriptions.length > 0 && (
-                  <div className="mt-8 space-y-6">
+                  <div className="space-y-6">
                     {prescriptions.map((prescription) => {
                       const appointment = appointments.find(
                         (item) =>
-                          item.appointmentId === prescription.appointmentId
+                          Number(item.appointmentId) ===
+                          Number(prescription.appointmentId)
                       );
 
                       const doctor = appointment
@@ -1786,8 +1778,15 @@ function PatientDashboard() {
                           typeof prescription.medications === "string"
                             ? JSON.parse(prescription.medications)
                             : prescription.medications || [];
-                      } catch (error) {
-                        console.error("Invalid prescription medications JSON:", error);
+
+                        if (!Array.isArray(medications)) {
+                          medications = [];
+                        }
+                      } catch (err) {
+                        console.error(
+                          "Invalid prescription medication data:",
+                          err
+                        );
                       }
 
                       return (
@@ -1795,45 +1794,42 @@ function PatientDashboard() {
                           key={prescription.prescriptionId}
                           className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
                         >
-                          {/* Card Header */}
+                          {/* PRESCRIPTION HEADER */}
                           <div className="flex flex-col gap-3 border-b border-slate-100 bg-cyan-50/50 p-5 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-wider text-cyan-700">
                                 Prescription #{prescription.prescriptionId}
                               </p>
-
                               <h3 className="mt-1 text-lg font-bold text-slate-900">
-                                {prescription.diagnosis}
+                                {prescription.diagnosis ||
+                                  "Diagnosis not recorded"}
                               </h3>
                             </div>
 
-                            <div className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
+                            <span className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
                               {prescription.prescribedAt
                                 ? new Date(
-                                  prescription.prescribedAt
-                                ).toLocaleDateString("en-IN", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                })
+                                    prescription.prescribedAt
+                                  ).toLocaleDateString("en-IN", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
                                 : "Date unavailable"}
-                            </div>
+                            </span>
                           </div>
 
                           <div className="p-5">
-                            {/* Doctor and Appointment Details */}
+                            {/* DOCTOR AND APPOINTMENT */}
                             <div className="grid gap-4 sm:grid-cols-2">
                               <div className="rounded-xl bg-slate-50 p-4">
                                 <p className="text-xs font-semibold uppercase text-slate-400">
                                   Prescribed By
                                 </p>
-
                                 <p className="mt-2 font-semibold text-slate-800">
-                                  {doctor
-                                    ? doctor.fullName
-                                    : "Doctor information unavailable"}
+                                  {doctor?.fullName ||
+                                    "Doctor information unavailable"}
                                 </p>
-
                                 {doctor?.specializationName && (
                                   <p className="mt-1 text-sm text-cyan-700">
                                     {doctor.specializationName}
@@ -1845,13 +1841,9 @@ function PatientDashboard() {
                                 <p className="text-xs font-semibold uppercase text-slate-400">
                                   Appointment
                                 </p>
-
                                 <p className="mt-2 font-semibold text-slate-800">
-                                  {appointment
-                                    ? `Appointment #${appointment.appointmentId}`
-                                    : `Appointment #${prescription.appointmentId}`}
+                                  Appointment #{prescription.appointmentId}
                                 </p>
-
                                 <p className="mt-1 text-sm text-slate-500">
                                   {appointment?.appointmentDate
                                     ? formatDate(appointment.appointmentDate)
@@ -1860,28 +1852,42 @@ function PatientDashboard() {
                               </div>
                             </div>
 
-                            {/* Medicines */}
+                            {/* DIAGNOSIS */}
                             <div className="mt-6">
-                              <h4 className="flex items-center gap-2 font-bold text-slate-800">
-                                <FileText size={18} className="text-cyan-600" />
+                              <h4 className="font-bold text-slate-800">
+                                Medical Diagnosis
+                              </h4>
+                              <p className="mt-2 rounded-xl border border-cyan-100 bg-cyan-50 p-4 text-sm leading-6 text-cyan-900">
+                                {prescription.diagnosis ||
+                                  "No diagnosis recorded."}
+                              </p>
+                            </div>
+
+                            {/* MEDICINES */}
+                            <div className="mt-6">
+                              <h4 className="font-bold text-slate-800">
                                 Prescribed Medicines
                               </h4>
 
                               {medications.length > 0 ? (
                                 <div className="mt-3 overflow-x-auto rounded-xl border border-slate-100">
-                                  <table className="w-full min-w-[500px] text-left text-sm">
+                                  <table className="w-full min-w-[750px] text-left text-sm">
                                     <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                                       <tr>
                                         <th className="px-4 py-3 font-semibold">
                                           Medicine
                                         </th>
-
                                         <th className="px-4 py-3 font-semibold">
                                           Dosage
                                         </th>
-
                                         <th className="px-4 py-3 font-semibold">
                                           Frequency
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                          Duration
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                          Instructions
                                         </th>
                                       </tr>
                                     </thead>
@@ -1890,15 +1896,24 @@ function PatientDashboard() {
                                       {medications.map((medicine, index) => (
                                         <tr key={index}>
                                           <td className="px-4 py-3 font-semibold text-slate-800">
-                                            {medicine.medicine || "Not specified"}
+                                            {medicine.medicineName ||
+                                              medicine.medicine ||
+                                              "Not specified"}
                                           </td>
-
                                           <td className="px-4 py-3 text-slate-600">
                                             {medicine.dosage || "Not specified"}
                                           </td>
-
                                           <td className="px-4 py-3 text-slate-600">
-                                            {medicine.frequency || "Not specified"}
+                                            {medicine.frequency ||
+                                              "Not specified"}
+                                          </td>
+                                          <td className="px-4 py-3 text-slate-600">
+                                            {medicine.duration ||
+                                              "Not specified"}
+                                          </td>
+                                          <td className="px-4 py-3 text-slate-600">
+                                            {medicine.instructions ||
+                                              "Not specified"}
                                           </td>
                                         </tr>
                                       ))}
@@ -1906,19 +1921,18 @@ function PatientDashboard() {
                                   </table>
                                 </div>
                               ) : (
-                                <p className="mt-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
+                                <p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
                                   No medicine details available.
                                 </p>
                               )}
                             </div>
 
-                            {/* Doctor Instructions */}
+                            {/* DOCTOR INSTRUCTIONS */}
                             {prescription.instructions && (
                               <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50 p-4">
                                 <h4 className="font-bold text-amber-800">
                                   Doctor's Instructions
                                 </h4>
-
                                 <p className="mt-2 whitespace-pre-line text-sm leading-6 text-amber-900">
                                   {prescription.instructions}
                                 </p>
@@ -1937,10 +1951,6 @@ function PatientDashboard() {
           {/* MEDICAL HISTORY */}
           {/* ===================================== */}
 
-          {/* ===================================== */}
-          {/* MEDICAL HISTORY */}
-          {/* ===================================== */}
-
           {activeMenu === "Medical History" && (
             <div>
               {/* PAGE HEADER */}
@@ -1948,9 +1958,9 @@ function PatientDashboard() {
                 <h1 className="text-2xl font-extrabold text-slate-900">
                   Medical History
                 </h1>
-
                 <p className="mt-1 text-sm text-slate-500">
-                  View your previous consultations, diagnoses and treatment records.
+                  View your previous consultations, diagnoses and treatment
+                  records.
                 </p>
               </div>
 
@@ -1962,12 +1972,10 @@ function PatientDashboard() {
                       <div className="rounded-xl bg-cyan-50 p-3 text-cyan-600">
                         <Clock size={22} />
                       </div>
-
                       <div>
                         <p className="text-sm text-slate-500">
                           Completed Consultations
                         </p>
-
                         <h3 className="mt-1 text-2xl font-bold text-slate-900">
                           {medicalHistory.length}
                         </h3>
@@ -1980,14 +1988,16 @@ function PatientDashboard() {
                       <div className="rounded-xl bg-green-50 p-3 text-green-600">
                         <CheckCircle size={22} />
                       </div>
-
                       <div>
                         <p className="text-sm text-slate-500">
                           Available Medical Records
                         </p>
-
                         <h3 className="mt-1 text-2xl font-bold text-slate-900">
-                          {medicalHistory.filter((record) => record.diagnosis).length}
+                          {
+                            medicalHistory.filter(
+                              (record) => record.diagnosis
+                            ).length
+                          }
                         </h3>
                       </div>
                     </div>
@@ -1999,7 +2009,6 @@ function PatientDashboard() {
               {medicalHistoryLoading && (
                 <div className="rounded-2xl border border-slate-100 bg-white p-10 text-center shadow-sm">
                   <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" />
-
                   <p className="mt-4 text-sm font-medium text-slate-500">
                     Loading your medical history...
                   </p>
@@ -2010,18 +2019,15 @@ function PatientDashboard() {
               {!medicalHistoryLoading && medicalHistoryError && (
                 <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
                   <AlertCircle size={38} className="mx-auto text-red-500" />
-
                   <h3 className="mt-3 font-bold text-red-700">
                     Unable to load medical history
                   </h3>
-
                   <p className="mt-2 text-sm text-red-600">
                     {medicalHistoryError}
                   </p>
-
                   <button
                     onClick={() => setActiveMenu("Dashboard")}
-                    className="mt-4 rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                    className="mt-4 rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700"
                   >
                     Back to Dashboard
                   </button>
@@ -2034,11 +2040,9 @@ function PatientDashboard() {
                 medicalHistory.length === 0 && (
                   <div className="rounded-2xl border border-slate-100 bg-white p-12 text-center shadow-sm">
                     <Clock size={48} className="mx-auto text-cyan-600" />
-
                     <h3 className="mt-4 text-lg font-bold text-slate-800">
                       No Medical History Available
                     </h3>
-
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
                       Your completed consultations and medical records will
                       appear here once you have completed an appointment.
@@ -2063,10 +2067,10 @@ function PatientDashboard() {
                         if (!Array.isArray(medications)) {
                           medications = [];
                         }
-                      } catch (error) {
+                      } catch (err) {
                         console.error(
                           "Invalid medical history medications:",
-                          error
+                          err
                         );
                       }
 
@@ -2081,12 +2085,11 @@ function PatientDashboard() {
                               <p className="text-xs font-semibold uppercase tracking-wider text-cyan-700">
                                 Consultation #{record.appointmentId}
                               </p>
-
                               <h3 className="mt-1 text-lg font-bold text-slate-900">
-                                {record.diagnosis || "Diagnosis not recorded"}
+                                {record.diagnosis ||
+                                  "Diagnosis not recorded"}
                               </h3>
                             </div>
-
                             <span className="w-fit rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
                               COMPLETED
                             </span>
@@ -2099,13 +2102,12 @@ function PatientDashboard() {
                                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                                   Consulting Doctor
                                 </p>
-
                                 <p className="mt-2 font-semibold text-slate-800">
                                   {record.doctorName || "Not available"}
                                 </p>
-
                                 <p className="mt-1 text-sm text-cyan-700">
-                                  {record.specialization || "Specialization unavailable"}
+                                  {record.specialization ||
+                                    "Specialization unavailable"}
                                 </p>
                               </div>
 
@@ -2113,13 +2115,11 @@ function PatientDashboard() {
                                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                                   Consultation Date
                                 </p>
-
                                 <p className="mt-2 font-semibold text-slate-800">
                                   {record.appointmentDate
                                     ? formatDate(record.appointmentDate)
                                     : "Date unavailable"}
                                 </p>
-
                                 <p className="mt-1 text-sm text-slate-500">
                                   {record.appointmentTime
                                     ? formatTime(record.appointmentTime)
@@ -2133,7 +2133,6 @@ function PatientDashboard() {
                               <h4 className="font-bold text-slate-800">
                                 Consultation Reason
                               </h4>
-
                               <p className="mt-2 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
                                 {record.reason || "No reason recorded."}
                               </p>
@@ -2144,13 +2143,12 @@ function PatientDashboard() {
                               <h4 className="font-bold text-slate-800">
                                 Medical Diagnosis
                               </h4>
-
                               <p className="mt-2 rounded-xl border border-cyan-100 bg-cyan-50 p-4 text-sm leading-6 text-cyan-900">
                                 {record.diagnosis || "No diagnosis recorded."}
                               </p>
                             </div>
 
-                            {/* MEDICATIONS */}
+                            {/* MEDICINES */}
                             <div className="mt-6">
                               <h4 className="font-bold text-slate-800">
                                 Prescribed Medicines
@@ -2158,36 +2156,48 @@ function PatientDashboard() {
 
                               {medications.length > 0 ? (
                                 <div className="mt-3 overflow-x-auto rounded-xl border border-slate-100">
-                                  <table className="w-full min-w-[500px] text-left text-sm">
+                                  <table className="w-full min-w-[750px] text-left text-sm">
                                     <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                                       <tr>
                                         <th className="px-4 py-3 font-semibold">
                                           Medicine
                                         </th>
-
                                         <th className="px-4 py-3 font-semibold">
                                           Dosage
                                         </th>
-
                                         <th className="px-4 py-3 font-semibold">
                                           Frequency
                                         </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                          Duration
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                          Instructions
+                                        </th>
                                       </tr>
                                     </thead>
-
                                     <tbody className="divide-y divide-slate-100">
                                       {medications.map((medicine, index) => (
                                         <tr key={index}>
                                           <td className="px-4 py-3 font-semibold text-slate-800">
-                                            {medicine.medicine || "Not specified"}
+                                            {medicine.medicineName ||
+                                              medicine.medicine ||
+                                              "Not specified"}
                                           </td>
-
                                           <td className="px-4 py-3 text-slate-600">
                                             {medicine.dosage || "Not specified"}
                                           </td>
-
                                           <td className="px-4 py-3 text-slate-600">
-                                            {medicine.frequency || "Not specified"}
+                                            {medicine.frequency ||
+                                              "Not specified"}
+                                          </td>
+                                          <td className="px-4 py-3 text-slate-600">
+                                            {medicine.duration ||
+                                              "Not specified"}
+                                          </td>
+                                          <td className="px-4 py-3 text-slate-600">
+                                            {medicine.instructions ||
+                                              "Not specified"}
                                           </td>
                                         </tr>
                                       ))}
@@ -2207,7 +2217,6 @@ function PatientDashboard() {
                                 <h4 className="font-bold text-amber-800">
                                   Treatment Instructions
                                 </h4>
-
                                 <p className="mt-2 whitespace-pre-line text-sm leading-6 text-amber-900">
                                   {record.instructions}
                                 </p>
@@ -2220,16 +2229,14 @@ function PatientDashboard() {
                                 <p className="text-xs text-slate-400">
                                   Prescription Date
                                 </p>
-
                                 <p className="mt-1 text-sm font-medium text-slate-600">
-                                  {new Date(record.prescribedAt).toLocaleDateString(
-                                    "en-IN",
-                                    {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                    }
-                                  )}
+                                  {new Date(
+                                    record.prescribedAt
+                                  ).toLocaleDateString("en-IN", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
                                 </p>
                               </div>
                             )}
@@ -2241,6 +2248,7 @@ function PatientDashboard() {
                 )}
             </div>
           )}
+
 
           {/* ===================================== */}
           {/* MY PROFILE */}

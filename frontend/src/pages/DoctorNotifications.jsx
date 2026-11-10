@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useEffect, useState, useCallback } from "react";
 import {
   Bell,
   CalendarDays,
@@ -10,78 +11,103 @@ import {
   X,
   BellRing,
 } from "lucide-react";
-
-const initialNotifications = [
-  {
-    id: 1,
-    title: "New Appointment Request",
-    message: "Rahul Sharma has requested an appointment with you.",
-    time: "5 minutes ago",
-    type: "appointment",
-    unread: true,
-  },
-  {
-    id: 2,
-    title: "Appointment Confirmed",
-    message: "Priya Deshmukh's appointment has been confirmed.",
-    time: "30 minutes ago",
-    type: "confirmed",
-    unread: true,
-  },
-  {
-    id: 3,
-    title: "Appointment Cancelled",
-    message: "Rohan More has cancelled his appointment.",
-    time: "2 hours ago",
-    type: "cancelled",
-    unread: true,
-  },
-  {
-    id: 4,
-    title: "Upcoming Appointment",
-    message: "You have an appointment with Neha Patil at 2:00 PM.",
-    time: "4 hours ago",
-    type: "reminder",
-    unread: false,
-  },
-  {
-    id: 5,
-    title: "Appointment Completed",
-    message: "Your consultation with Amit Joshi is marked completed.",
-    time: "Yesterday",
-    type: "confirmed",
-    unread: false,
-  },
-];
+import toast from "react-hot-toast";
+import api from "../services/api";
 
 function DoctorNotifications() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const unreadCount = notifications.filter(
-    (notification) => notification.unread
-  ).length;
+  // Format backend notification into frontend structure
+  const mapNotification = (notification) => ({
+    id: notification.notificationId,
+    title: notification.title,
+    message: notification.message,
+    time: notification.createdAt,
+    type: notification.type,
+    unread: !notification.isRead,
+  });
 
+  // Fetch notifications
+  const fetchNotifications = useCallback(async (showLoader = true) => {
+    try {
+      if (showLoader) setLoading(true);
+
+      const [notificationsResponse, countResponse] =
+        await Promise.all([
+          api.get("/notifications/my"),
+          api.get("/notifications/unread-count"),
+        ]);
+
+      const records = Array.isArray(notificationsResponse.data)
+        ? notificationsResponse.data
+        : [];
+
+      setNotifications(records.map(mapNotification));
+      setUnreadCount(Number(countResponse.data) || 0);
+    } catch (error) {
+      console.error("Notification fetch error:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to load notifications."
+      );
+    } finally {
+      if (showLoader) setLoading(false);
+    }
+  }, []);
+
+  // Load notifications when component mounts
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  // Format timestamp
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "";
+
+    const date = new Date(timestamp);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Select notification icon
   const getNotificationIcon = (type) => {
     switch (type) {
+      case "NEW_APPOINTMENT":
+      case "APPOINTMENT_BOOKED":
       case "appointment":
         return {
           icon: CalendarDays,
           style: "bg-cyan-50 text-cyan-600",
         };
 
+      case "APPOINTMENT_CONFIRMED":
       case "confirmed":
         return {
           icon: CheckCircle,
           style: "bg-green-50 text-green-600",
         };
 
+      case "APPOINTMENT_CANCELLED":
       case "cancelled":
         return {
           icon: XCircle,
           style: "bg-red-50 text-red-600",
         };
 
+      case "APPOINTMENT_REMINDER":
       case "reminder":
         return {
           icon: Clock,
@@ -96,27 +122,85 @@ function DoctorNotifications() {
     }
   };
 
-  const markAsRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id
-          ? { ...notification, unread: false }
-          : notification
-      )
+  // Mark individual notification as read
+  const markAsRead = async (id) => {
+    const notification = notifications.find(
+      (item) => item.id === id
     );
+
+    if (!notification || !notification.unread || actionLoading) {
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+
+      await api.patch(`/notifications/${id}/read`);
+
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, unread: false }
+            : item
+        )
+      );
+
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Mark notification read error:", error);
+      toast.error("Unable to mark notification as read.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((notification) => ({
-        ...notification,
-        unread: false,
-      }))
-    );
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    if (unreadCount === 0 || actionLoading) return;
+
+    try {
+      setActionLoading(true);
+
+      await api.patch("/notifications/mark-all-read");
+
+      setNotifications((prev) =>
+        prev.map((item) => ({ ...item, unread: false }))
+      );
+
+      setUnreadCount(0);
+
+      toast.success("All notifications marked as read.");
+    } catch (error) {
+      console.error("Mark all notifications error:", error);
+      toast.error("Unable to update notifications.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const clearAllNotifications = () => {
-    setNotifications([]);
+  // Clear all notifications
+  const clearAllNotifications = async () => {
+    if (actionLoading) return;
+
+    if (!window.confirm("Are you sure you want to clear all notifications?")) {
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+
+      await api.delete("/notifications/clear-all");
+
+      setNotifications([]);
+      setUnreadCount(0);
+
+      toast.success("All notifications cleared.");
+    } catch (error) {
+      console.error("Clear notifications error:", error);
+      toast.error("Unable to clear notifications.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -182,7 +266,7 @@ function DoctorNotifications() {
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
                 <button
                   onClick={markAllAsRead}
-                  disabled={unreadCount === 0}
+                  disabled={unreadCount === 0 || actionLoading}
                   className="flex items-center gap-1.5 text-xs font-semibold text-cyan-700 transition hover:text-cyan-800 disabled:cursor-not-allowed disabled:text-slate-400"
                 >
                   <CheckCheck size={15} />
@@ -191,7 +275,8 @@ function DoctorNotifications() {
 
                 <button
                   onClick={clearAllNotifications}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-red-500 transition hover:text-red-600"
+                  disabled={actionLoading}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-red-500 transition hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Trash2 size={14} />
                   Clear all
@@ -201,7 +286,14 @@ function DoctorNotifications() {
 
             {/* NOTIFICATION LIST */}
             <div className="max-h-[420px] overflow-y-auto">
-              {notifications.length > 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-7 w-7 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" />
+                  <span className="ml-3 text-xs text-slate-500">
+                    Loading notifications...
+                  </span>
+                </div>
+              ) : notifications.length > 0 ? (
                 notifications.map((notification) => {
                   const { icon: Icon, style } = getNotificationIcon(
                     notification.type
@@ -211,8 +303,11 @@ function DoctorNotifications() {
                     <button
                       key={notification.id}
                       onClick={() => markAsRead(notification.id)}
-                      className={`flex w-full gap-3 border-b border-slate-50 p-4 text-left transition hover:bg-slate-50 ${
-                        notification.unread ? "bg-cyan-50/40" : "bg-white"
+                      disabled={actionLoading}
+                      className={`flex w-full gap-3 border-b border-slate-50 p-4 text-left transition hover:bg-slate-50 disabled:cursor-default ${
+                        notification.unread
+                          ? "bg-cyan-50/40"
+                          : "bg-white"
                       }`}
                     >
                       {/* ICON */}
@@ -239,7 +334,7 @@ function DoctorNotifications() {
                         </p>
 
                         <p className="mt-2 text-[11px] font-medium text-slate-400">
-                          {notification.time}
+                          {formatTime(notification.time)}
                         </p>
                       </div>
                     </button>

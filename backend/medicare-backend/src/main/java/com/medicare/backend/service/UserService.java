@@ -1,19 +1,21 @@
+
 package com.medicare.backend.service;
 
 import java.util.List;
+import java.util.Locale;
 
-import org.springframework.stereotype.Service;
-
-import com.medicare.backend.dto.UserResponseDTO;
-import com.medicare.backend.entity.User;
-import com.medicare.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.medicare.backend.dto.CreateDoctorAccountRequestDTO;
 import com.medicare.backend.dto.UpdateUserStatusRequestDTO;
+import com.medicare.backend.dto.UserResponseDTO;
+import com.medicare.backend.entity.User;
 import com.medicare.backend.enums.Role;
+import com.medicare.backend.repository.UserRepository;
 
 @Service
 public class UserService {
@@ -29,6 +31,8 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    // Get all users (Admin Only)
+    @Transactional(readOnly = true)
     public List<UserResponseDTO> getAllUsers() {
 
         return userRepository.findAll()
@@ -37,6 +41,7 @@ public class UserService {
                 .toList();
     }
 
+    // Convert User entity to response DTO
     private UserResponseDTO convertToDTO(User user) {
 
         return new UserResponseDTO(
@@ -45,67 +50,78 @@ public class UserService {
                 user.getEmail(),
                 user.getRole().name(),
                 user.getIsActive(),
-                user.getCreatedAt());
-
+                user.getCreatedAt()
+        );
     }
 
     // Create Doctor Account (Admin Only)
+    @Transactional
     public UserResponseDTO createDoctorAccount(
             CreateDoctorAccountRequestDTO request) {
 
-        // 1. Check duplicate email
-        if (userRepository.existsByEmail(request.getEmail())) {
+        // Normalize email
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        // Check duplicate email (case-insensitive)
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Email is already registered");
+                    "Email is already registered"
+            );
         }
 
-        // 2. Create new User
+        // Create new user
         User user = new User();
 
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
+        user.setFullName(request.getFullName().trim());
+        user.setEmail(email);
 
-        // 3. Encrypt password
+        // Encrypt password
         user.setPasswordHash(
-                passwordEncoder.encode(request.getPassword()));
+                passwordEncoder.encode(request.getPassword())
+        );
 
-        // 4. Assign DOCTOR role
+        // Assign DOCTOR role
         user.setRole(Role.DOCTOR);
 
-        // 5. Activate account
+        // Activate account
         user.setIsActive(true);
 
-        // 6. Save user
+        // Save user
         User savedUser = userRepository.save(user);
 
-        // 7. Return response DTO
         return convertToDTO(savedUser);
     }
 
     // Activate or Deactivate User Account (Admin Only)
+    @Transactional
     public UserResponseDTO updateUserStatus(
             Long userId,
             UpdateUserStatusRequestDTO request) {
 
-        // 1. Find user by ID
+        // Find user
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "User not found with ID: " + userId));
+                        "User not found with ID: " + userId
+                ));
+
         // Prevent changing ADMIN account status
         if (user.getRole() == Role.ADMIN) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "Admin account status cannot be changed");
+                    "Admin account status cannot be changed"
+            );
         }
-        // 2. Update account status
+
+        // Update account status
         user.setIsActive(request.getIsActive());
 
-        // 3. Save updated user
+        // Save updated user
         User updatedUser = userRepository.save(user);
 
-        // 4. Return updated user details
         return convertToDTO(updatedUser);
     }
 }
