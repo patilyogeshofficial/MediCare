@@ -58,10 +58,10 @@ function Hero() {
           </p>
 
           {/* CALL TO ACTION BUTTONS */}
-          <div className="mt-8 flex flex-wrap items-center gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3.5">
             <Link
               to="/patient/appointments/book"
-              className="inline-flex items-center gap-2.5 rounded-2xl bg-cyan-600 px-7 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/25 transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600"
+              className="inline-flex items-center justify-center gap-2.5 rounded-2xl bg-cyan-600 px-7 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/25 transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 text-center"
             >
               <CalendarCheck size={19} aria-hidden="true" />
               Book Consultation
@@ -71,7 +71,7 @@ function Hero() {
             <a
               href="#doctors"
               onClick={handleScrollToSection("doctors")}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white/80 px-6 py-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white/80 px-6 py-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 text-center"
             >
               <Stethoscope size={18} className="text-cyan-600" aria-hidden="true" />
               Meet Specialists
