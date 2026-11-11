@@ -1230,7 +1230,7 @@ function DoctorAppointments() {
       {/* View Prescription Modal */}
       {prescriptionModalAppointment && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4">
-          <div className="my-6 w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="my-6 w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl print-receipt-modal">
             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 p-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
@@ -1247,7 +1247,7 @@ function DoctorAppointments() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="no-print flex items-center gap-2">
                 {viewingPrescription && (
                   <button
                     type="button"
@@ -1402,7 +1402,7 @@ function DoctorAppointments() {
               )}
             </div>
 
-            <div className="flex justify-end border-t border-slate-100 bg-slate-50/50 p-4">
+            <div className="no-print flex justify-end border-t border-slate-100 bg-slate-50/50 p-4">
               <button
                 type="button"
                 onClick={closeViewPrescription}

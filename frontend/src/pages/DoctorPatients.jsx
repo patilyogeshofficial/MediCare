@@ -503,7 +503,7 @@ function DoctorPatients() {
       {/* PATIENT DETAILS MODAL */}
       {selectedPatient && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl print-receipt-modal">
             {/* MODAL HEADER */}
             <div className="flex items-center justify-between border-b border-slate-100 p-6">
               <div>
@@ -516,7 +516,7 @@ function DoctorPatients() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="no-print flex items-center gap-2">
                 {activeTab === "prescriptions" &&
                   patientPrescriptions.length > 0 && (
                     <button
@@ -539,7 +539,7 @@ function DoctorPatients() {
             </div>
 
             {/* TAB SELECTOR */}
-            <div className="flex border-b border-slate-100 bg-slate-50/50 px-6 pt-3">
+            <div className="no-print flex border-b border-slate-100 bg-slate-50/50 px-6 pt-3">
               <button
                 type="button"
                 onClick={() => setActiveTab("overview")}

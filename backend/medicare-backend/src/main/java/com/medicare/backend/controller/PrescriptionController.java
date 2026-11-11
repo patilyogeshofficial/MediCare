@@ -53,11 +53,11 @@ public class PrescriptionController {
     }
 
     // ==========================================
-    // GET PRESCRIPTION BY ID (ADMIN & DOCTOR)
+    // GET PRESCRIPTION BY ID (ADMIN, DOCTOR & PATIENT)
     // ==========================================
 
     @GetMapping("/{prescriptionId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'PATIENT')")
     public ResponseEntity<PrescriptionResponseDTO> getPrescriptionById(
             @PathVariable Long prescriptionId,
             Authentication authentication) {
@@ -73,11 +73,11 @@ public class PrescriptionController {
     }
 
     // ==========================================
-    // GET PRESCRIPTION BY APPOINTMENT (ADMIN & DOCTOR)
+    // GET PRESCRIPTION BY APPOINTMENT (ADMIN, DOCTOR & PATIENT)
     // ==========================================
 
     @GetMapping("/appointment/{appointmentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'PATIENT')")
     public ResponseEntity<PrescriptionResponseDTO> getPrescriptionByAppointmentId(
             @PathVariable Long appointmentId,
             Authentication authentication) {

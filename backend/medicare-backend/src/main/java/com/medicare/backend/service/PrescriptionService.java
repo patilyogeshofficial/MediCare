@@ -116,13 +116,17 @@ public class PrescriptionService {
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "User not found"));
 
-            Doctor doctor = doctorRepository.findByUserId(user.getUserId())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, "Doctor profile not found"));
-
             Appointment appointment = validateAppointment(prescription.getAppointmentId());
 
-            if (!doctor.getDoctorId().equals(appointment.getDoctorId())) {
+            boolean isDoctor = doctorRepository.findByUserId(user.getUserId())
+                    .map(doc -> doc.getDoctorId().equals(appointment.getDoctorId()))
+                    .orElse(false);
+
+            boolean isPatient = patientRepository.findByUserId(user.getUserId())
+                    .map(pat -> pat.getPatientId().equals(appointment.getPatientId()))
+                    .orElse(false);
+
+            if (!isDoctor && !isPatient) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
                         "You are not allowed to access this prescription");
@@ -158,11 +162,15 @@ public class PrescriptionService {
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "User not found"));
 
-            Doctor doctor = doctorRepository.findByUserId(user.getUserId())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, "Doctor profile not found"));
+            boolean isDoctor = doctorRepository.findByUserId(user.getUserId())
+                    .map(doc -> doc.getDoctorId().equals(appointment.getDoctorId()))
+                    .orElse(false);
 
-            if (!doctor.getDoctorId().equals(appointment.getDoctorId())) {
+            boolean isPatient = patientRepository.findByUserId(user.getUserId())
+                    .map(pat -> pat.getPatientId().equals(appointment.getPatientId()))
+                    .orElse(false);
+
+            if (!isDoctor && !isPatient) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
                         "You are not allowed to access this appointment's prescription");
