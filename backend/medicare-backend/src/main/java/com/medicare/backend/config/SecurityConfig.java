@@ -170,6 +170,12 @@ public class SecurityConfig {
                                 "/api/contact-messages"
                         ).permitAll()
 
+                        // Public platform statistics
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/public/**"
+                        ).permitAll()
+
                         // Public doctor listing
                         .requestMatchers(
                                 HttpMethod.GET,
