@@ -91,7 +91,8 @@ public class AuthService {
                 savedUser.getUserId(),
                 savedUser.getFullName(),
                 savedUser.getEmail(),
-                savedUser.getRole().name());
+                savedUser.getRole().name(),
+                savedUser.getIsActive());
     }
 
     // Login existing user
@@ -118,6 +119,7 @@ public class AuthService {
                 user.getUserId(),
                 user.getFullName(),
                 user.getEmail(),
-                user.getRole().name());
+                user.getRole().name(),
+                user.getIsActive());
     }
 }

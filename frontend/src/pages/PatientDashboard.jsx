@@ -129,7 +129,8 @@ function PatientDashboard() {
         setDoctorsError("");
 
         const response = await api.get("/doctors");
-        setDoctors(response.data);
+        const list = Array.isArray(response.data) ? response.data : [];
+        setDoctors(list.filter((doc) => doc.isActive !== false));
       } catch (err) {
         console.error("Failed to fetch doctors:", err);
 

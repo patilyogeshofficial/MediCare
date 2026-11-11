@@ -23,7 +23,7 @@ import {
 
 import api from "../services/api";
 
-function DoctorPatients() {
+function DoctorPatients({ isDeactivated = false }) {
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("All");

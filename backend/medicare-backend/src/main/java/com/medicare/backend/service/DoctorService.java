@@ -37,58 +37,72 @@ public class DoctorService {
                 this.specializationRepository = specializationRepository;
         }
 
-        // Get all doctors
-      // Get all doctors (Public information only)
-public List<PublicDoctorResponseDTO> getAllDoctors() {
+        // Get all doctors (defaults to active only)
+        public List<PublicDoctorResponseDTO> getAllDoctors() {
+                return getAllDoctors(false);
+        }
 
-    return doctorRepository.findAll()
-            .stream()
-            .map(this::convertToPublicDTO)
-            .toList();
-}
-// Convert Doctor entity to public response DTO
-private PublicDoctorResponseDTO convertToPublicDTO(Doctor doctor) {
+        // Get all doctors with optional inactive filter
+        public List<PublicDoctorResponseDTO> getAllDoctors(boolean includeInactive) {
+                return doctorRepository.findAll()
+                                .stream()
+                                .map(this::convertToPublicDTO)
+                                .filter(doc -> includeInactive || Boolean.TRUE.equals(doc.getIsActive()))
+                                .toList();
+        }
 
-    User user = userRepository.findById(doctor.getUserId())
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Doctor user not found"));
+        // Convert Doctor entity to public response DTO
+        private PublicDoctorResponseDTO convertToPublicDTO(Doctor doctor) {
 
-    Specialization specialization = specializationRepository
-            .findById(doctor.getSpecializationId())
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Specialization not found"));
+                User user = userRepository.findById(doctor.getUserId())
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Doctor user not found"));
 
-    return new PublicDoctorResponseDTO(
-            doctor.getDoctorId(),
-            user.getUserId(),
-            user.getFullName(),
-            specialization.getSpecializationName(),
-            doctor.getQualification(),
-            doctor.getExperienceYears(),
-            doctor.getConsultationFee()
-    );
-}
+                Specialization specialization = specializationRepository
+                                .findById(doctor.getSpecializationId())
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Specialization not found"));
+
+                return new PublicDoctorResponseDTO(
+                                doctor.getDoctorId(),
+                                user.getUserId(),
+                                user.getFullName(),
+                                specialization.getSpecializationName(),
+                                doctor.getQualification(),
+                                doctor.getExperienceYears(),
+                                doctor.getConsultationFee(),
+                                user.getIsActive()
+                );
+        }
+
         // Get doctor by ID
-public DoctorResponseDTO getDoctorById(Long doctorId) {
+        public DoctorResponseDTO getDoctorById(Long doctorId) {
 
-    Doctor doctor = doctorRepository.findById(doctorId)
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Doctor not found"));
+                Doctor doctor = doctorRepository.findById(doctorId)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND, "Doctor not found"));
 
-    return convertToDTO(doctor);
-}
+                return convertToDTO(doctor);
+        }
 
-// Get public doctor details by ID (Patient access)
-public PublicDoctorResponseDTO getPublicDoctorById(Long doctorId) {
+        // Get public doctor details by ID (Patient access - active only)
+        public PublicDoctorResponseDTO getPublicDoctorById(Long doctorId) {
 
-    Doctor doctor = doctorRepository.findById(doctorId)
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Doctor not found"));
+                Doctor doctor = doctorRepository.findById(doctorId)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND, "Doctor not found"));
 
-    return convertToPublicDTO(doctor);
-}
+                PublicDoctorResponseDTO dto = convertToPublicDTO(doctor);
+                if (!Boolean.TRUE.equals(dto.getIsActive())) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Doctor is currently unavailable");
+                }
+
+                return dto;
+        }
 
 
 
@@ -184,13 +198,19 @@ public PublicDoctorResponseDTO getPublicDoctorById(Long doctorId) {
 
                 // Doctor can update only their own profile
                 // Doctor cannot change the linked user account
-                if (authenticatedUser.getRole() == Role.DOCTOR
-                                && (!doctor.getUserId().equals(authenticatedUser.getUserId())
-                                                || !doctor.getUserId().equals(dto.getUserId()))) {
+                if (authenticatedUser.getRole() == Role.DOCTOR) {
+                        if (!Boolean.TRUE.equals(authenticatedUser.getIsActive())) {
+                                throw new ResponseStatusException(
+                                                HttpStatus.FORBIDDEN,
+                                                "Your doctor account is deactivated by the administrator.");
+                        }
 
-                        throw new ResponseStatusException(
-                                        HttpStatus.FORBIDDEN,
-                                        "Doctors can update only their own profile and cannot change its user account");
+                        if (!doctor.getUserId().equals(authenticatedUser.getUserId())
+                                        || !doctor.getUserId().equals(dto.getUserId())) {
+                                throw new ResponseStatusException(
+                                                HttpStatus.FORBIDDEN,
+                                                "Doctors can update only their own profile and cannot change its user account");
+                        }
                 }
 
                 // Find target doctor user
@@ -276,7 +296,8 @@ public PublicDoctorResponseDTO getPublicDoctorById(Long doctorId) {
                                 doctor.getLicenseNumber(),
                                 doctor.getQualification(),
                                 doctor.getExperienceYears(),
-                                doctor.getConsultationFee());
+                                doctor.getConsultationFee(),
+                                user.getIsActive());
         }
 
         @Transactional

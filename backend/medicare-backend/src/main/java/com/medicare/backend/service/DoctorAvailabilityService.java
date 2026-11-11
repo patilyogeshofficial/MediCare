@@ -58,6 +58,13 @@ public class DoctorAvailabilityService {
         DoctorResponseDTO doctor =
                 doctorService.getMyDoctorProfile(authenticatedEmail);
 
+        if (!Boolean.TRUE.equals(doctor.getIsActive())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Your doctor account is deactivated by the administrator."
+            );
+        }
+
         if (requests == null || requests.isEmpty()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,

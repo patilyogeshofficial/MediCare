@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
         fullName: data.fullName,
         email: data.email,
         role: data.role,
+        isActive: data.isActive,
       },
     };
 

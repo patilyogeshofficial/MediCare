@@ -103,7 +103,7 @@ const mapBackendAvailability = (records) => {
   });
 };
 
-function DoctorAvailability() {
+function DoctorAvailability({ isDeactivated = false }) {
   const [availability, setAvailability] = useState(initialAvailability);
   const [savedAvailability, setSavedAvailability] =
     useState(initialAvailability);
@@ -145,6 +145,11 @@ function DoctorAvailability() {
 
   // Toggle availability
   const handleToggle = (index) => {
+    if (isDeactivated) {
+      toast.error("Action not permitted: Your doctor profile is deactivated by the administrator.");
+      return;
+    }
+
     setAvailability((prev) =>
       prev.map((item, i) =>
         i === index
@@ -156,6 +161,10 @@ function DoctorAvailability() {
 
   // Update time fields
   const handleTimeChange = (index, field, value) => {
+    if (isDeactivated) {
+      return;
+    }
+
     setAvailability((prev) =>
       prev.map((item, i) =>
         i === index
@@ -167,6 +176,11 @@ function DoctorAvailability() {
 
   // Validate and save availability
   const handleSave = async () => {
+    if (isDeactivated) {
+      toast.error("Action not permitted: Your doctor profile is deactivated by the administrator.");
+      return;
+    }
+
     const enabledDays = availability.filter(
       (day) => day.enabled
     );
@@ -251,6 +265,11 @@ function DoctorAvailability() {
 
   // Reset to last saved schedule
   const handleReset = () => {
+    if (isDeactivated) {
+      toast.error("Action not permitted: Your doctor profile is deactivated by the administrator.");
+      return;
+    }
+
     setAvailability(
       savedAvailability.map((day) => ({ ...day }))
     );
@@ -316,6 +335,15 @@ function DoctorAvailability() {
           Manage your weekly working hours and consultation timings.
         </p>
       </div>
+
+      {isDeactivated && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <p className="font-semibold">Schedule Locked</p>
+          <p className="mt-0.5 text-xs text-amber-700">
+            Your profile is currently deactivated. Modifying working hours and saving availability is disabled.
+          </p>
+        </div>
+      )}
 
       {/* SUMMARY CARDS */}
       <div className="grid gap-5 sm:grid-cols-3">
@@ -408,11 +436,12 @@ function DoctorAvailability() {
                     <div className="flex items-center gap-4">
                       <button
                         type="button"
+                        disabled={isDeactivated}
                         onClick={() => handleToggle(index)}
                         role="switch"
                         aria-checked={day.enabled}
                         aria-label={`Enable ${day.day}`}
-                        className={`relative h-6 w-11 rounded-full transition ${
+                        className={`relative h-6 w-11 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${
                           day.enabled
                             ? "bg-cyan-600"
                             : "bg-slate-300"
@@ -564,8 +593,8 @@ function DoctorAvailability() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  disabled={saving}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isDeactivated || saving}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RotateCcw size={16} />
                   Reset Changes
@@ -574,8 +603,8 @@ function DoctorAvailability() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isDeactivated || saving}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Save size={17} />
                   {saving ? "Saving..." : "Save Availability"}

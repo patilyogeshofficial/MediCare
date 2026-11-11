@@ -107,7 +107,7 @@ function AdminAppointments() {
         api.get("/appointments"),
         api.get("/patients"),
         api.get("/users"),
-        api.get("/doctors"),
+        api.get("/doctors", { params: { includeInactive: true } }),
         api.get("/prescriptions"),
       ]);
 

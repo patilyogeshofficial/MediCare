@@ -24,6 +24,7 @@ import {
   X,
   Stethoscope,
   TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 
 // Sidebar Navigation
@@ -36,7 +37,7 @@ const navigation = [
 ];
 
 function DoctorDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -44,6 +45,37 @@ function DoctorDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const [appointmentsError, setAppointmentsError] = useState("");
+
+  // Live doctor profile status
+  const [doctorProfile, setDoctorProfile] = useState(null);
+
+  // Check doctor profile status
+  useEffect(() => {
+    let isMounted = true;
+    const loadProfile = async () => {
+      try {
+        const response = await api.get("/doctors/me");
+        if (isMounted) {
+          setDoctorProfile(response.data);
+          if (response.data && response.data.isActive !== undefined) {
+            updateUser({ isActive: response.data.isActive });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load doctor profile:", err);
+      }
+    };
+
+    loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const isDeactivated = Boolean(
+    (doctorProfile && doctorProfile.isActive === false) ||
+    (user && user.isActive === false)
+  );
 
   // Load appointments belonging only to the authenticated doctor.
   useEffect(() => {
@@ -327,9 +359,16 @@ function DoctorDashboard() {
             {/* DOCTOR PROFILE */}
             <div className="flex items-center gap-3 border-l border-slate-100 pl-4">
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-bold text-slate-800">
-                  Dr. {user?.fullName || "Doctor"}
-                </p>
+                <div className="flex items-center justify-end gap-1.5">
+                  <p className="text-sm font-bold text-slate-800">
+                    Dr. {user?.fullName || "Doctor"}
+                  </p>
+                  {isDeactivated && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                      Inactive
+                    </span>
+                  )}
+                </div>
 
                 <p className="text-xs text-slate-500">
                   Doctor
@@ -354,6 +393,30 @@ function DoctorDashboard() {
 
         {/* PAGE CONTENT */}
         <div className="p-5 sm:p-8">
+
+          {/* DEACTIVATED ACCOUNT ALERT BANNER */}
+          {isDeactivated && (
+            <div className="mb-6 rounded-2xl border-2 border-red-200 bg-red-50 p-5 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="rounded-xl bg-red-100 p-2.5 text-red-600">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-bold text-red-900">
+                      Your Doctor Profile Has Been Deactivated by the Administrator
+                    </h3>
+                    <span className="rounded-full bg-red-200 px-2.5 py-0.5 text-xs font-bold text-red-800">
+                      Action Required
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm leading-relaxed text-red-700">
+                    Your profile has been marked inactive by hospital administration. Your profile is currently hidden from patient searches and booking. While deactivated, you are in read-only mode and cannot accept or complete consultations, save availability schedules, or issue new prescriptions. Please contact hospital administration to reactivate your doctor profile.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ===================================== */}
           {/* DASHBOARD */}
@@ -665,7 +728,7 @@ function DoctorDashboard() {
           {/* ===================================== */}
 
           {activeMenu === "My Appointments" && (
-            <DoctorAppointments />
+            <DoctorAppointments isDeactivated={isDeactivated} />
           )}
 
           {/* ===================================== */}
@@ -673,7 +736,7 @@ function DoctorDashboard() {
           {/* ===================================== */}
 
           {activeMenu === "My Patients" && (
-            <DoctorPatients />
+            <DoctorPatients isDeactivated={isDeactivated} />
           )}
 
           {/* ===================================== */}
@@ -681,7 +744,7 @@ function DoctorDashboard() {
           {/* ===================================== */}
 
           {activeMenu === "My Profile" && (
-            <DoctorProfile />
+            <DoctorProfile isDeactivated={isDeactivated} />
           )}
 
           {/* ===================================== */}
@@ -689,7 +752,7 @@ function DoctorDashboard() {
           {/* ===================================== */}
 
           {activeMenu === "Availability" && (
-            <DoctorAvailability />
+            <DoctorAvailability isDeactivated={isDeactivated} />
           )}
 
         </div>

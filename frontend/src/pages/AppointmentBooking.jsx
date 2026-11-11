@@ -43,7 +43,8 @@ function AppointmentBooking() {
     const fetchDoctors = async () => {
       try {
         const response = await api.get("/doctors");
-        setDoctors(response.data);
+        const list = Array.isArray(response.data) ? response.data : [];
+        setDoctors(list.filter((doc) => doc.isActive !== false));
       } catch (error) {
         console.error("Failed to fetch doctors:", error);
         toast.error("Unable to load doctors.");

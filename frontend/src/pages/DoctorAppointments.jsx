@@ -77,7 +77,7 @@ const normalizeAppointment = (item) => {
   };
 };
 
-function DoctorAppointments() {
+function DoctorAppointments({ isDeactivated = false }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -219,6 +219,13 @@ function DoctorAppointments() {
   }, [appointments, search, statusFilter, dateFilter]);
 
   const updateStatus = async (appointment, newStatus) => {
+    if (isDeactivated) {
+      toast.error(
+        "Action not permitted: Your doctor profile is deactivated by the administrator."
+      );
+      return;
+    }
+
     setUpdatingId(appointment.id);
 
     try {
@@ -294,6 +301,13 @@ function DoctorAppointments() {
   };
 
   const openPrescriptionForm = (appointment) => {
+    if (isDeactivated) {
+      toast.error(
+        "Action not permitted: Your doctor profile is deactivated by the administrator."
+      );
+      return;
+    }
+
     if (appointment.prescriptionCheckFailed) {
       toast.error("Unable to check prescription status. Refresh and try again.");
       return;
@@ -381,6 +395,13 @@ function DoctorAppointments() {
 
   const savePrescription = async (event) => {
     event.preventDefault();
+
+    if (isDeactivated) {
+      toast.error(
+        "Action not permitted: Your doctor profile is deactivated by the administrator."
+      );
+      return;
+    }
 
     if (!selectedAppointment) return;
 
@@ -531,20 +552,20 @@ function DoctorAppointments() {
         <>
           <button
             type="button"
-            disabled={updatingId === appointment.id}
+            disabled={isDeactivated || updatingId === appointment.id}
             onClick={() => updateStatus(appointment, "Confirmed")}
-            title="Accept appointment"
-            className="rounded-lg bg-green-50 p-2 text-green-600 transition hover:bg-green-100 disabled:opacity-50"
+            title={isDeactivated ? "Action disabled: Doctor profile is deactivated" : "Accept appointment"}
+            className="rounded-lg bg-green-50 p-2 text-green-600 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <CheckCircle size={17} />
           </button>
 
           <button
             type="button"
-            disabled={updatingId === appointment.id}
+            disabled={isDeactivated || updatingId === appointment.id}
             onClick={() => updateStatus(appointment, "Rejected")}
-            title="Reject appointment"
-            className="rounded-lg bg-red-50 p-2 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+            title={isDeactivated ? "Action disabled: Doctor profile is deactivated" : "Reject appointment"}
+            className="rounded-lg bg-red-50 p-2 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <XCircle size={17} />
           </button>
@@ -554,10 +575,10 @@ function DoctorAppointments() {
       {appointment.status === "Confirmed" && (
         <button
           type="button"
-          disabled={updatingId === appointment.id}
+          disabled={isDeactivated || updatingId === appointment.id}
           onClick={() => updateStatus(appointment, "Completed")}
-          title="Complete appointment"
-          className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 disabled:opacity-50"
+          title={isDeactivated ? "Action disabled: Doctor profile is deactivated" : "Complete appointment"}
+          className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <CheckCircle size={17} />
         </button>
@@ -576,10 +597,10 @@ function DoctorAppointments() {
         ) : (
           <button
             type="button"
-            disabled={appointment.prescriptionCheckFailed}
+            disabled={isDeactivated || appointment.prescriptionCheckFailed}
             onClick={() => openPrescriptionForm(appointment)}
-            title="Write prescription"
-            className="rounded-lg bg-cyan-50 p-2 text-cyan-600 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+            title={isDeactivated ? "Action disabled: Doctor profile is deactivated" : "Write prescription"}
+            className="rounded-lg bg-cyan-50 p-2 text-cyan-600 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Pill size={17} />
           </button>
@@ -613,6 +634,15 @@ function DoctorAppointments() {
           Refresh appointments
         </button>
       </div>
+
+      {isDeactivated && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <p className="font-semibold">Actions Disabled</p>
+          <p className="mt-0.5 text-xs text-amber-700">
+            Your profile is currently deactivated. Appointments can be reviewed, but updating statuses and writing new prescriptions are disabled.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => {
@@ -893,22 +923,22 @@ function DoctorAppointments() {
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    disabled={updatingId === selectedAppointment.id}
+                    disabled={isDeactivated || updatingId === selectedAppointment.id}
                     onClick={() =>
                       updateStatus(selectedAppointment, "Confirmed")
                     }
-                    className="flex-1 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Accept Appointment
                   </button>
 
                   <button
                     type="button"
-                    disabled={updatingId === selectedAppointment.id}
+                    disabled={isDeactivated || updatingId === selectedAppointment.id}
                     onClick={() =>
                       updateStatus(selectedAppointment, "Rejected")
                     }
-                    className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Reject
                   </button>
@@ -918,11 +948,11 @@ function DoctorAppointments() {
               {selectedAppointment.status === "Confirmed" && (
                 <button
                   type="button"
-                  disabled={updatingId === selectedAppointment.id}
+                  disabled={isDeactivated || updatingId === selectedAppointment.id}
                   onClick={() =>
                     updateStatus(selectedAppointment, "Completed")
                   }
-                  className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <CheckCircle size={17} className="mr-2 inline" />
                   Complete Appointment
@@ -958,10 +988,11 @@ function DoctorAppointments() {
                 ) : (
                   <button
                     type="button"
+                    disabled={isDeactivated}
                     onClick={() =>
                       openPrescriptionForm(selectedAppointment)
                     }
-                    className="w-full rounded-xl bg-cyan-600 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                    className="w-full rounded-xl bg-cyan-600 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Pill size={17} className="mr-2 inline" />
                     Write Prescription

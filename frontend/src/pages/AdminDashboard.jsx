@@ -125,7 +125,7 @@ function AdminDashboard() {
           api.get("/appointments"),
           api.get("/patients"),
           api.get("/users"),
-          api.get("/doctors"),
+          api.get("/doctors", { params: { includeInactive: true } }),
         ]);
 
         const appointmentData = appointmentsResponse.data || [];

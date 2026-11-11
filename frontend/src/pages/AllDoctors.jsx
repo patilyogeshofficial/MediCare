@@ -49,11 +49,12 @@ function AllDoctors() {
           api.get("/specializations"),
         ]);
 
-      setDoctors(
-        Array.isArray(doctorsResponse.data)
-          ? doctorsResponse.data
-          : []
-      );
+      const rawDoctors = Array.isArray(doctorsResponse.data)
+        ? doctorsResponse.data
+        : [];
+      const activeDoctors = rawDoctors.filter((doc) => doc.isActive !== false);
+
+      setDoctors(activeDoctors);
 
       setSpecializations(
         Array.isArray(specializationsResponse.data)

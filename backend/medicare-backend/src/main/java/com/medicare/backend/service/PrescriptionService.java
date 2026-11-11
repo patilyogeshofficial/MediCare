@@ -276,6 +276,12 @@ public class PrescriptionService {
                         HttpStatus.NOT_FOUND,
                         "User not found"));
 
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Your doctor account is deactivated by the administrator.");
+        }
+
         Doctor doctor = doctorRepository.findByUserId(user.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,

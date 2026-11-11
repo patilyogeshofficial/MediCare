@@ -296,9 +296,8 @@ function ServiceDetails() {
 
         const response = await api.get("/doctors");
 
-        setDoctors(
-          Array.isArray(response.data) ? response.data : []
-        );
+        const list = Array.isArray(response.data) ? response.data : [];
+        setDoctors(list.filter((doc) => doc.isActive !== false));
       } catch (err) {
         console.error("Unable to fetch service doctors:", err);
 

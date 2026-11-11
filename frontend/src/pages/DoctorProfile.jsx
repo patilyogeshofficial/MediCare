@@ -18,7 +18,7 @@ import toast from "react-hot-toast";
 
 import api from "../services/api";
 
-function DoctorProfile() {
+function DoctorProfile({ isDeactivated = false }) {
   const [profile, setProfile] = useState(null);
   const [formData, setFormData] = useState(null);
 
@@ -317,14 +317,31 @@ function DoctorProfile() {
 
         {!isEditing && (
           <button
-            onClick={handleEdit}
-            className="flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+            onClick={() => {
+              if (isDeactivated) {
+                toast.error("Action not permitted: Your doctor profile is deactivated by the administrator.");
+                return;
+              }
+              handleEdit();
+            }}
+            disabled={isDeactivated}
+            title={isDeactivated ? "Profile editing disabled while deactivated" : "Edit Profile"}
+            className="flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Pencil size={17} />
             Edit Profile
           </button>
         )}
       </div>
+
+      {isDeactivated && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <p className="font-semibold">Profile Locked</p>
+          <p className="mt-0.5 text-xs text-amber-700">
+            Your profile is currently deactivated by the administrator. Editing your profile information is disabled.
+          </p>
+        </div>
+      )}
 
       {/* PROFILE HEADER CARD */}
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">

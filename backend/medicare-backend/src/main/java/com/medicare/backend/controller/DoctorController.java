@@ -28,12 +28,19 @@ public class DoctorController {
         this.doctorService = doctorService;
     }
 
-    // Get all doctors (Public access)
+    // Get all doctors (Public access, inactive doctors hidden unless requested by Admin)
     @GetMapping
-    public ResponseEntity<List<PublicDoctorResponseDTO>> getAllDoctors() {
+    public ResponseEntity<List<PublicDoctorResponseDTO>> getAllDoctors(
+            @RequestParam(value = "includeInactive", required = false) Boolean includeInactive,
+            Authentication authentication) {
+
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+
+        boolean shouldIncludeInactive = isAdmin && (includeInactive == null || includeInactive);
 
         return ResponseEntity.ok(
-                doctorService.getAllDoctors());
+                doctorService.getAllDoctors(shouldIncludeInactive));
     }
     // Get doctor by ID (Admin, Doctor, Patient)
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'PATIENT')")

@@ -206,7 +206,7 @@ function AdminDoctors() {
 
       const [doctorsResponse, usersResponse] = await Promise.all([
 
-        api.get("/doctors"),
+        api.get("/doctors", { params: { includeInactive: true } }),
 
         api.get("/users"),
 

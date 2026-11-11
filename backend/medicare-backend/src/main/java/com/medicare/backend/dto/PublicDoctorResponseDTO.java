@@ -12,6 +12,7 @@ public class PublicDoctorResponseDTO {
     private String qualification;
     private Integer experienceYears;
     private BigDecimal consultationFee;
+    private Boolean isActive;
 
     public PublicDoctorResponseDTO() {
     }
@@ -24,7 +25,7 @@ public class PublicDoctorResponseDTO {
             Integer experienceYears,
             BigDecimal consultationFee) {
 
-        this(doctorId, null, fullName, specializationName, qualification, experienceYears, consultationFee);
+        this(doctorId, null, fullName, specializationName, qualification, experienceYears, consultationFee, true);
     }
 
     public PublicDoctorResponseDTO(
@@ -36,6 +37,19 @@ public class PublicDoctorResponseDTO {
             Integer experienceYears,
             BigDecimal consultationFee) {
 
+        this(doctorId, userId, fullName, specializationName, qualification, experienceYears, consultationFee, true);
+    }
+
+    public PublicDoctorResponseDTO(
+            Long doctorId,
+            Long userId,
+            String fullName,
+            String specializationName,
+            String qualification,
+            Integer experienceYears,
+            BigDecimal consultationFee,
+            Boolean isActive) {
+
         this.doctorId = doctorId;
         this.userId = userId;
         this.fullName = fullName;
@@ -43,6 +57,7 @@ public class PublicDoctorResponseDTO {
         this.qualification = qualification;
         this.experienceYears = experienceYears;
         this.consultationFee = consultationFee;
+        this.isActive = isActive;
     }
 
     public Long getDoctorId() {
@@ -75,5 +90,13 @@ public class PublicDoctorResponseDTO {
 
     public BigDecimal getConsultationFee() {
         return consultationFee;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 }
