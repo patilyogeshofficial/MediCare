@@ -1,4 +1,4 @@
-
+import { useEffect, useState } from "react";
 import {
   Heart,
   Brain,
@@ -8,153 +8,145 @@ import {
   Stethoscope,
   Venus,
   Eye,
+  Activity,
   ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
-
 import { Link } from "react-router-dom";
+import api from "../services/api";
 
-const specialities = [
-  {
-    name: "Cardiology",
-    slug: "cardiology",
-    description:
-      "Specialized care for heart health and cardiovascular conditions.",
-    icon: Heart,
-    color: "bg-red-50 text-red-600",
-  },
-  {
-    name: "Neurology",
-    slug: "neurology",
-    description:
-      "Expert care for brain, spine and nervous system conditions.",
-    icon: Brain,
-    color: "bg-purple-50 text-purple-600",
-  },
-  {
-    name: "Orthopedics",
-    slug: "orthopedics",
-    description:
-      "Treatment and care for bones, joints and muscles.",
-    icon: Bone,
-    color: "bg-orange-50 text-orange-600",
-  },
-  {
-    name: "Dermatology",
-    slug: "dermatology",
-    description:
-      "Professional care for skin, hair and nail conditions.",
-    icon: ScanFace,
-    color: "bg-pink-50 text-pink-600",
-  },
-  {
-    name: "Pediatrics",
-    slug: "pediatrics",
-    description:
-      "Dedicated healthcare for infants, children and adolescents.",
-    icon: Baby,
-    color: "bg-blue-50 text-blue-600",
-  },
-  {
-    name: "General Medicine",
-    slug: "general-medicine",
-    description:
-      "Primary healthcare, diagnosis and preventive care.",
-    icon: Stethoscope,
-    color: "bg-green-50 text-green-600",
-  },
-  {
-    name: "Gynecology",
-    slug: "gynecology",
-    description:
-      "Healthcare services focused on women's reproductive health.",
-    icon: Venus,
-    color: "bg-rose-50 text-rose-600",
-  },
-  {
-    name: "Ophthalmology",
-    slug: "ophthalmology",
-    description:
-      "Specialized medical care for eye health and vision.",
-    icon: Eye,
-    color: "bg-cyan-50 text-cyan-600",
-  },
-];
+const getIconForSpecialization = (name) => {
+  const normalized = String(name || "").toLowerCase();
+  if (normalized.includes("cardio")) return { icon: Heart, color: "bg-red-50 text-red-600" };
+  if (normalized.includes("neuro")) return { icon: Brain, color: "bg-purple-50 text-purple-600" };
+  if (normalized.includes("ortho")) return { icon: Bone, color: "bg-orange-50 text-orange-600" };
+  if (normalized.includes("derma") || normalized.includes("skin")) return { icon: ScanFace, color: "bg-pink-50 text-pink-600" };
+  if (normalized.includes("pedia") || normalized.includes("child")) return { icon: Baby, color: "bg-blue-50 text-blue-600" };
+  if (normalized.includes("gynec") || normalized.includes("women")) return { icon: Venus, color: "bg-rose-50 text-rose-600" };
+  if (normalized.includes("ophthal") || normalized.includes("eye")) return { icon: Eye, color: "bg-cyan-50 text-cyan-600" };
+  if (normalized.includes("general") || normalized.includes("physician")) return { icon: Stethoscope, color: "bg-emerald-50 text-emerald-600" };
+  return { icon: Activity, color: "bg-sky-50 text-sky-600" };
+};
 
-function Specialities() {
+function Specialities({ initialSpecialities = null }) {
+  const [specialitiesList, setSpecialitiesList] = useState(initialSpecialities || []);
+  const [loading, setLoading] = useState(!initialSpecialities);
+
+  useEffect(() => {
+    if (initialSpecialities && initialSpecialities.length > 0) {
+      setSpecialitiesList(initialSpecialities);
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchSpecializations = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/specializations");
+        if (isMounted) {
+          setSpecialitiesList(Array.isArray(response.data) ? response.data : []);
+        }
+      } catch (err) {
+        console.error("Failed to load specializations on homepage:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchSpecializations();
+    return () => {
+      isMounted = false;
+    };
+  }, [initialSpecialities]);
+
   return (
     <section
       id="services"
       className="scroll-mt-20 bg-slate-50 py-20 lg:py-28"
     >
       <div className="mx-auto max-w-7xl px-6">
-
         {/* SECTION HEADING */}
         <div className="mx-auto mb-14 max-w-2xl text-center">
-          <p className="font-bold uppercase tracking-widest text-cyan-600">
-            Our Departments
-          </p>
+          <span className="text-xs font-bold uppercase tracking-wider text-cyan-700">
+            Medical Departments
+          </span>
 
-          <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
-            Explore Our Medical Specialities
+          <h2 className="mt-3 text-balance text-3xl font-black text-slate-900 sm:text-4xl">
+            Explore Clinical Specialities
           </h2>
 
-          <p className="mt-5 leading-7 text-slate-600">
-            Access specialized healthcare services with experienced
-            medical professionals across multiple departments.
+          <p className="mt-4 text-base leading-relaxed text-slate-600">
+            Comprehensive hospital departments with specialized doctors ready for outpatient and consultation appointments.
           </p>
         </div>
 
-        {/* SPECIALITIES GRID */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {specialities.map((speciality) => {
-            const Icon = speciality.icon;
-
-            return (
+        {/* LOADING SKELETON */}
+        {loading && (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
               <div
-                key={speciality.slug}
-                className="group rounded-2xl border border-slate-100 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-cyan-200 hover:shadow-xl"
-              >
-                {/* SPECIALITY ICON */}
+                key={item}
+                className="h-44 animate-pulse rounded-2xl border border-slate-200 bg-white p-7"
+              />
+            ))}
+          </div>
+        )}
+
+        {/* SPECIALITIES GRID */}
+        {!loading && (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {specialitiesList.map((item) => {
+              const { icon: Icon, color } = getIconForSpecialization(item.specializationName || item.name);
+              const name = item.specializationName || item.name;
+              const description =
+                item.description ||
+                `Specialized clinical consultations and medical care in ${name}.`;
+
+              return (
                 <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-2xl ${speciality.color}`}
+                  key={item.specializationId || item.specialization_id || name}
+                  className="group flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-900/5"
                 >
-                  <Icon size={28} aria-hidden="true" />
+                  <div>
+                    <div
+                      className={`flex h-14 w-14 items-center justify-center rounded-2xl ${color}`}
+                    >
+                      <Icon size={28} aria-hidden="true" />
+                    </div>
+
+                    <h3 className="mt-6 text-xl font-bold text-slate-900 group-hover:text-cyan-700 transition">
+                      {name}
+                    </h3>
+
+                    <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+                      {description}
+                    </p>
+                  </div>
+
+                  <Link
+                    to="/doctors"
+                    className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-cyan-700 transition hover:gap-3"
+                  >
+                    View Doctors
+                    <ArrowRight size={15} aria-hidden="true" />
+                  </Link>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                {/* SPECIALITY NAME */}
-                <h3 className="mt-6 text-xl font-bold text-slate-900">
-                  {speciality.name}
-                </h3>
-
-                {/* DESCRIPTION */}
-                <p className="mt-3 min-h-16 text-sm leading-6 text-slate-600">
-                  {speciality.description}
-                </p>
-
-                {/* EXPLORE DEPARTMENT */}
-                <Link
-                  to={`/services/${speciality.slug}`}
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-700 transition group-hover:gap-3"
-                >
-                  Explore Department
-                  <ArrowRight size={16} aria-hidden="true" />
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* BOTTOM CTA */}
-        <div className="mt-12 text-center">
+        {/* BOTTOM ACTION */}
+        <div className="mt-14 text-center">
           <Link
-            to="/doctors"
-            className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-7 py-4 font-bold text-white transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-700"
+            to="/patient/appointments/book"
+            className="inline-flex items-center gap-2 rounded-2xl bg-cyan-600 px-8 py-4 text-sm font-bold text-white shadow-md transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600"
           >
-            Explore All Specialities
+            Book An Appointment Across Any Department
             <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </div>
-
       </div>
     </section>
   );

@@ -102,7 +102,7 @@ function Register() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-md">
+      <main id="main-content" tabIndex="-1" className="w-full max-w-md">
 
         {/* LOGO */}
         <div className="mb-8 text-center">
@@ -130,7 +130,7 @@ function Register() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-500">
-              Register to access MediCare healthcare services.
+              Register to access MediCare Plus healthcare services.
             </p>
           </div>
 
@@ -324,7 +324,7 @@ function Register() {
           </Link>
         </div>
 
-      </div>
+      </main>
     </div>
   );
 }

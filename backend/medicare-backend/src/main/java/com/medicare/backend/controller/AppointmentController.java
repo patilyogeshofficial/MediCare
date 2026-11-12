@@ -1,18 +1,26 @@
 
 package com.medicare.backend.controller;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.web.server.ResponseStatusException;
+import com.medicare.backend.dto.AppointmentStatusUpdateDTO;
+import com.medicare.backend.dto.AvailableSlotDTO;
 import com.medicare.backend.dto.DoctorPatientResponseDTO;
 import com.medicare.backend.dto.AppointmentRequestDTO;
 import com.medicare.backend.dto.AppointmentResponseDTO;
+import com.medicare.backend.dto.RescheduleRequestDTO;
 import com.medicare.backend.service.AppointmentService;
 
 @RestController
@@ -63,6 +71,15 @@ public class AppointmentController {
                 appointmentService.getAllAppointments());
     }
 
+    private String extractClientIp(HttpServletRequest request) {
+        if (request == null) return "127.0.0.1";
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader != null && !xfHeader.isEmpty()) {
+            return xfHeader.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
     // ==========================================
     // CANCEL MY APPOINTMENT (PATIENT ONLY)
     // ==========================================
@@ -71,12 +88,19 @@ public class AppointmentController {
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<AppointmentResponseDTO> cancelMyAppointment(
             @PathVariable Long appointmentId,
+            @RequestBody(required = false) AppointmentStatusUpdateDTO dto,
+            HttpServletRequest request,
             Authentication authentication) {
+
+        String reason = dto != null ? dto.getCancellationReason() : null;
+        String clientIp = extractClientIp(request);
 
         AppointmentResponseDTO response =
                 appointmentService.cancelMyAppointment(
                         appointmentId,
-                        authentication.getName());
+                        authentication.getName(),
+                        reason,
+                        clientIp);
 
         return ResponseEntity.ok(response);
     }
@@ -178,10 +202,21 @@ public ResponseEntity<List<DoctorPatientResponseDTO>> getMyPatients(
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<AppointmentResponseDTO> updateAppointmentStatus(
             @PathVariable Long appointmentId,
-            @RequestParam String status,
+            @RequestParam(required = false) String status,
+            @RequestBody(required = false) AppointmentStatusUpdateDTO statusDto,
+            HttpServletRequest request,
             Authentication authentication) {
 
-        String normalizedStatus = status.trim().toUpperCase();
+        String targetStatus = statusDto != null && statusDto.getStatus() != null
+                ? statusDto.getStatus() : status;
+
+        if (targetStatus == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status parameter is required");
+        }
+
+        String normalizedStatus = targetStatus.trim().toUpperCase();
+        String reason = statusDto != null ? statusDto.getCancellationReason() : null;
+        String clientIp = extractClientIp(request);
 
         boolean isAdmin = authentication.getAuthorities()
                 .stream()
@@ -192,17 +227,118 @@ public ResponseEntity<List<DoctorPatientResponseDTO>> getMyPatients(
 
         if (isAdmin) {
             response = appointmentService.updateAppointmentStatus(
-                    appointmentId, normalizedStatus);
+                    appointmentId,
+                    normalizedStatus,
+                    reason,
+                    authentication.getName(),
+                    "ADMIN",
+                    clientIp);
         } else {
             response = appointmentService.updateAppointmentStatusByDoctor(
                     appointmentId,
                     normalizedStatus,
-                    authentication.getName());
+                    reason,
+                    authentication.getName(),
+                    clientIp);
         }
 
         return ResponseEntity.ok(response);
     }
 
+
+    // ==========================================
+    // GET AVAILABLE SLOTS (AUTHENTICATED)
+    // ==========================================
+
+    @GetMapping("/available-slots")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<AvailableSlotDTO>> getAvailableSlots(
+            @RequestParam Long doctorId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        return ResponseEntity.ok(
+                appointmentService.getAvailableSlots(doctorId, date));
+    }
+
+    // ==========================================
+    // RESCHEDULE APPOINTMENT REQUEST (PATIENT ONLY)
+    // ==========================================
+
+    @PostMapping("/{appointmentId}/reschedule-request")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<AppointmentResponseDTO> requestReschedule(
+            @PathVariable Long appointmentId,
+            @Valid @RequestBody RescheduleRequestDTO dto,
+            HttpServletRequest request,
+            Authentication authentication) {
+
+        String clientIp = extractClientIp(request);
+        AppointmentResponseDTO response = appointmentService.requestReschedule(
+                appointmentId,
+                dto,
+                authentication.getName(),
+                clientIp
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ==========================================
+    // APPROVE RESCHEDULE (DOCTOR OR ADMIN)
+    // ==========================================
+
+    @PatchMapping("/{appointmentId}/reschedule-approve")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
+    public ResponseEntity<AppointmentResponseDTO> approveReschedule(
+            @PathVariable Long appointmentId,
+            HttpServletRequest request,
+            Authentication authentication) {
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        String role = isAdmin ? "ADMIN" : "DOCTOR";
+        String clientIp = extractClientIp(request);
+
+        AppointmentResponseDTO response = appointmentService.approveReschedule(
+                appointmentId,
+                authentication.getName(),
+                role,
+                clientIp
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ==========================================
+    // REJECT RESCHEDULE (DOCTOR OR ADMIN)
+    // ==========================================
+
+    @PatchMapping("/{appointmentId}/reschedule-reject")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
+    public ResponseEntity<AppointmentResponseDTO> rejectReschedule(
+            @PathVariable Long appointmentId,
+            @RequestBody(required = false) Map<String, String> body,
+            HttpServletRequest request,
+            Authentication authentication) {
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        String role = isAdmin ? "ADMIN" : "DOCTOR";
+        String clientIp = extractClientIp(request);
+        String reason = body != null ? body.get("reason") : null;
+
+        AppointmentResponseDTO response = appointmentService.rejectReschedule(
+                appointmentId,
+                reason,
+                authentication.getName(),
+                role,
+                clientIp
+        );
+
+        return ResponseEntity.ok(response);
+    }
 
     // ==========================================
     // DELETE APPOINTMENT (ADMIN ONLY)

@@ -1,38 +1,133 @@
 @import "tailwindcss";
 
-/* Global Styles */
+/* ==========================================================================
+   MediCare V2.0 - Unified Design System & WCAG 2.2 AA Accessibility Styles
+   ========================================================================== */
 
+/* 1. Global Document Conventions */
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 6rem;
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #1e293b;
+  background-color: #f8fafc;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Accessibility: Respect reduced-motion preferences */
+/* 2. WCAG 2.2 Level AA Focus Indicators */
+:focus-visible {
+  outline: 2px solid #0891b2;
+  outline-offset: 2px;
+}
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid #0891b2 !important;
+  outline-offset: 2px !important;
+}
+
+/* 3. Screen Reader Utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* 4. Skip to Main Content Link (Keyboard Accessibility) */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  background-color: #0891b2;
+  color: #ffffff;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 9999;
+  transition: top 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 1rem;
+  outline: 3px solid #0284c7 !important;
+  outline-offset: 2px !important;
+}
+
+/* 5. Motion Accessibility: Respects prefers-reduced-motion (WCAG 2.2) */
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* Print Styles for Prescriptions & Receipts */
+/* 6. Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 7. Print Styles for Prescriptions & Verification Receipts */
 @media print {
-  /* Hide everything on the page */
   body * {
     visibility: hidden;
   }
 
-  /* Show only the printable receipt modal and its children */
   .print-receipt-modal,
   .print-receipt-modal * {
     visibility: visible;
   }
 
-  /* Reset positioning so the modal takes the full printed page */
   .print-receipt-modal {
     position: absolute !important;
     left: 0 !important;
@@ -46,7 +141,6 @@ body {
     background: white !important;
   }
 
-  /* Explicitly hide non-printable elements inside the modal */
   .no-print,
   .no-print * {
     display: none !important;

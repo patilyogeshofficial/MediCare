@@ -40,20 +40,20 @@ function About() {
         {/* LEFT CONTENT */}
         <div>
           <p className="mb-4 font-bold uppercase tracking-widest text-cyan-600">
-            About MediCare
+            About MediCare Plus
           </p>
 
           <h2 className="text-balance text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
-            Your Health Deserves
+            Smarter Care.
             <span className="text-cyan-600">
-              {" "}The Best Care.
+              {" "}Better Connections.
             </span>
           </h2>
 
           <p className="mt-6 leading-8 text-slate-600">
-            MediCare is a healthcare administration platform designed
-            to make healthcare services more accessible, organized
-            and convenient for everyone.
+            MediCare Plus is the Healthcare Administration Console designed
+            to make healthcare management more accessible, organized, and
+            connected for patients, doctors, and administrators.
           </p>
 
           <p className="mt-4 leading-8 text-slate-600">

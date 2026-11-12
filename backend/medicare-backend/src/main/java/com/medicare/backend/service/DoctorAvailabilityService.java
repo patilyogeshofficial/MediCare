@@ -108,6 +108,9 @@ public class DoctorAvailabilityService {
             availability.setEndTime(dto.getEndTime());
             availability.setBreakStart(dto.getBreakStart());
             availability.setBreakEnd(dto.getBreakEnd());
+            if (dto.getConsultationDuration() != null && dto.getConsultationDuration() > 0) {
+                availability.setConsultationDuration(dto.getConsultationDuration());
+            }
 
             availabilityRepository.save(availability);
         }
@@ -197,6 +200,7 @@ public class DoctorAvailabilityService {
         dto.setEndTime(availability.getEndTime());
         dto.setBreakStart(availability.getBreakStart());
         dto.setBreakEnd(availability.getBreakEnd());
+        dto.setConsultationDuration(availability.getConsultationDuration());
 
         return dto;
     }

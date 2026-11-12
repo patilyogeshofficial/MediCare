@@ -35,8 +35,29 @@ public class Appointment {
     @Column(name = "reason")
     private String reason;
 
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
     @Column(name = "status", nullable = false)
     private String status;
+
+    @Column(name = "hold_expires_at")
+    private OffsetDateTime holdExpiresAt;
+
+    @Column(name = "queue_number")
+    private Integer queueNumber;
+
+    @Column(name = "reschedule_requested_date")
+    private LocalDate rescheduleRequestedDate;
+
+    @Column(name = "reschedule_requested_time")
+    private LocalTime rescheduleRequestedTime;
+
+    @Column(name = "reschedule_reason")
+    private String rescheduleReason;
+
+    @Column(name = "reschedule_status")
+    private String rescheduleStatus;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -97,6 +118,14 @@ public class Appointment {
         this.reason = reason;
     }
 
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -111,5 +140,53 @@ public class Appointment {
 
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public OffsetDateTime getHoldExpiresAt() {
+        return holdExpiresAt;
+    }
+
+    public void setHoldExpiresAt(OffsetDateTime holdExpiresAt) {
+        this.holdExpiresAt = holdExpiresAt;
+    }
+
+    public Integer getQueueNumber() {
+        return queueNumber;
+    }
+
+    public void setQueueNumber(Integer queueNumber) {
+        this.queueNumber = queueNumber;
+    }
+
+    public LocalDate getRescheduleRequestedDate() {
+        return rescheduleRequestedDate;
+    }
+
+    public void setRescheduleRequestedDate(LocalDate rescheduleRequestedDate) {
+        this.rescheduleRequestedDate = rescheduleRequestedDate;
+    }
+
+    public LocalTime getRescheduleRequestedTime() {
+        return rescheduleRequestedTime;
+    }
+
+    public void setRescheduleRequestedTime(LocalTime rescheduleRequestedTime) {
+        this.rescheduleRequestedTime = rescheduleRequestedTime;
+    }
+
+    public String getRescheduleReason() {
+        return rescheduleReason;
+    }
+
+    public void setRescheduleReason(String rescheduleReason) {
+        this.rescheduleReason = rescheduleReason;
+    }
+
+    public String getRescheduleStatus() {
+        return rescheduleStatus;
+    }
+
+    public void setRescheduleStatus(String rescheduleStatus) {
+        this.rescheduleStatus = rescheduleStatus;
     }
 }

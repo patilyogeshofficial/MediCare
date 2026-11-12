@@ -70,7 +70,7 @@ function WhyChooseUs() {
           </p>
 
           <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
-            Why Patients Choose MediCare
+            Why Patients Choose MediCare Plus
           </h2>
 
           <p className="mt-5 leading-7 text-slate-600">
@@ -116,7 +116,7 @@ function WhyChooseUs() {
 
           <p className="mx-auto mt-4 max-w-2xl leading-7 text-cyan-50">
             Take the next step towards a more convenient healthcare
-            experience with MediCare. Connect with qualified doctors
+            experience with MediCare Plus. Connect with qualified doctors
             and find the right care for your needs.
           </p>
 

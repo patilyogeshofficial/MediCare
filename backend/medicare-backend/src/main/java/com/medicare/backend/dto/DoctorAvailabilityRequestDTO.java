@@ -10,6 +10,7 @@ public class DoctorAvailabilityRequestDTO {
     private LocalTime endTime;
     private LocalTime breakStart;
     private LocalTime breakEnd;
+    private Integer consultationDuration;
 
     public String getDayOfWeek() {
         return dayOfWeek;
@@ -57,5 +58,13 @@ public class DoctorAvailabilityRequestDTO {
 
     public void setBreakEnd(LocalTime breakEnd) {
         this.breakEnd = breakEnd;
+    }
+
+    public Integer getConsultationDuration() {
+        return consultationDuration;
+    }
+
+    public void setConsultationDuration(Integer consultationDuration) {
+        this.consultationDuration = consultationDuration;
     }
 }

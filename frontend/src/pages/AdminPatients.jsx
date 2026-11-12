@@ -17,9 +17,17 @@ import {
   Power,
   Save,
   Loader2,
+  Activity,
+  ClipboardList,
+  ShieldAlert,
+  FileText,
+  Download,
+  Heart,
+  Scale,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../services/api";
+import AccessibleModal from "../components/ui/AccessibleModal";
 
 const emptyForm = {
   fullName: "",
@@ -46,6 +54,50 @@ function AdminPatients() {
   const [editingPatientId, setEditingPatientId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+
+  // Admin EHR modal state (Module 5)
+  const [ehrModalOpen, setEhrModalOpen] = useState(false);
+  const [ehrTargetPatient, setEhrTargetPatient] = useState(null);
+  const [patientEhrData, setPatientEhrData] = useState(null);
+  const [loadingEhr, setLoadingEhr] = useState(false);
+  const [ehrError, setEhrError] = useState("");
+
+  const openPatientEhr = async (patient) => {
+    setEhrTargetPatient(patient);
+    setPatientEhrData(null);
+    setEhrError("");
+    setEhrModalOpen(true);
+    setLoadingEhr(true);
+    try {
+      const res = await api.get(`/medical-records/patient/${patient.patientId}`);
+      setPatientEhrData(res.data);
+    } catch (err) {
+      console.error("Admin EHR fetch error:", err);
+      setEhrError(err.response?.data?.message || "Unable to load patient EHR records.");
+    } finally {
+      setLoadingEhr(false);
+    }
+  };
+
+  const handleAdminDownloadDoc = async (doc) => {
+    try {
+      const response = await api.get(`/medical-records/documents/${doc.id}/download`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([response.data], { type: doc.fileMimeType || "application/octet-stream" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", doc.originalFileName || `patient-doc-${doc.id}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Admin doc download error:", err);
+      toast.error(err.response?.data?.message || "Failed to download document.");
+    }
+  };
 
   const fetchPatients = useCallback(async (showLoader = true) => {
     try {
@@ -469,6 +521,14 @@ function AdminPatients() {
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
+                          onClick={() => openPatientEhr(patient)}
+                          title="View Electronic Health Record"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                        >
+                          <ClipboardList size={15} /> EHR
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setSelectedPatient(patient)}
                           title="View patient"
                           className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-50 px-3 py-2 text-xs font-bold text-cyan-700 hover:bg-cyan-100"
@@ -512,37 +572,19 @@ function AdminPatients() {
       </div>
 
       {/* ADD / EDIT PATIENT MODAL */}
-      {formOpen && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeForm();
-          }}
-        >
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white p-5">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  {formMode === "add" ? "Add New Patient" : "Edit Patient Account"}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {formMode === "add"
-                    ? "Create a patient login account and profile."
-                    : `Update patient #${editingPatientId} account and profile details.`}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeForm}
-                disabled={saving}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-                aria-label="Close form"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5 p-6">
+      <AccessibleModal
+        isOpen={formOpen}
+        onClose={closeForm}
+        title={formMode === "add" ? "Add New Patient" : "Edit Patient Account"}
+        description={
+          formMode === "add"
+            ? "Create a patient login account and profile."
+            : `Update patient #${editingPatientId} account and profile details.`
+        }
+        maxWidth="max-w-2xl"
+        showCloseButton={!saving}
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
                   Account information
@@ -693,52 +735,28 @@ function AdminPatients() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </AccessibleModal>
 
       {/* PATIENT DETAILS MODAL */}
-      {selectedPatient && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
-          onClick={() => setSelectedPatient(null)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="patient-modal-title"
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 p-5">
-              <div>
-                <h3 id="patient-modal-title" className="text-lg font-bold text-slate-900">
-                  Patient Details
-                </h3>
-                <p className="text-sm text-slate-500">
-                  Patient #{selectedPatient.patientId}
-                </p>
+      <AccessibleModal
+        isOpen={!!selectedPatient}
+        onClose={() => setSelectedPatient(null)}
+        title="Patient Details"
+        description={selectedPatient ? `Patient #${selectedPatient.patientId}: ${selectedPatient.fullName}` : ""}
+        maxWidth="max-w-lg"
+      >
+        {selectedPatient && (
+          <div>
+            <div className="mb-6 flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-cyan-100 text-xl font-extrabold text-cyan-700">
+                {getInitials(selectedPatient.fullName)}
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedPatient(null)}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-                aria-label="Close patient details"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-cyan-100 text-xl font-extrabold text-cyan-700">
-                  {getInitials(selectedPatient.fullName)}
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-slate-900">{selectedPatient.fullName}</h4>
-                  <p className="text-sm text-slate-500">Patient ID: #{selectedPatient.patientId}</p>
+              <div>
+                <h4 className="text-xl font-bold text-slate-900">{selectedPatient.fullName}</h4>
+                <p className="text-sm text-slate-500">Patient ID: #{selectedPatient.patientId}</p>
+                <div className="mt-2">
                   <span
-                    className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+                    className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
                       selectedPatient.isActive === true
                         ? "bg-green-50 text-green-700"
                         : selectedPatient.isActive === false
@@ -754,21 +772,32 @@ function AdminPatients() {
                   </span>
                 </div>
               </div>
+            </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Detail icon={Mail} label="Email" value={selectedPatient.email} />
-                <Detail icon={Phone} label="Phone" value={selectedPatient.phone} />
-                <Detail icon={CalendarDays} label="Date of Birth" value={formatDate(selectedPatient.dateOfBirth)} />
-                <Detail icon={UserRound} label="Gender" value={selectedPatient.gender} />
-                <Detail icon={Droplets} label="Blood Group" value={selectedPatient.bloodGroup} />
-                <Detail icon={CalendarDays} label="Registered On" value={formatDate(selectedPatient.createdAt)} />
-                <div className="sm:col-span-2">
-                  <Detail icon={MapPin} label="Address" value={selectedPatient.address} />
-                </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Detail icon={Mail} label="Email" value={selectedPatient.email} />
+              <Detail icon={Phone} label="Phone" value={selectedPatient.phone} />
+              <Detail icon={CalendarDays} label="Date of Birth" value={formatDate(selectedPatient.dateOfBirth)} />
+              <Detail icon={UserRound} label="Gender" value={selectedPatient.gender} />
+              <Detail icon={Droplets} label="Blood Group" value={selectedPatient.bloodGroup} />
+              <Detail icon={CalendarDays} label="Registered On" value={formatDate(selectedPatient.createdAt)} />
+              <div className="sm:col-span-2">
+                <Detail icon={MapPin} label="Address" value={selectedPatient.address} />
               </div>
             </div>
 
-            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 p-5">
+            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-5">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = selectedPatient;
+                  setSelectedPatient(null);
+                  openPatientEhr(target);
+                }}
+                className="rounded-xl bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 flex items-center gap-1.5"
+              >
+                <ClipboardList size={16} /> Inspect Full EHR
+              </button>
               <button
                 type="button"
                 onClick={() => togglePatientStatus(selectedPatient)}
@@ -797,8 +826,284 @@ function AdminPatients() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </AccessibleModal>
+
+      {/* ADMIN EHR INSPECTION MODAL */}
+      <AccessibleModal
+        isOpen={ehrModalOpen && Boolean(ehrTargetPatient)}
+        onClose={() => setEhrModalOpen(false)}
+        title={ehrTargetPatient ? `Patient EHR: ${ehrTargetPatient.fullName}` : "Patient Electronic Health Record"}
+        description={ehrTargetPatient ? `Patient #${ehrTargetPatient.patientId} • ${ehrTargetPatient.email} (Admin Oversight)` : ""}
+        maxWidth="max-w-4xl"
+      >
+        {ehrTargetPatient && (
+          <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-6">
+            {loadingEhr && (
+              <div className="p-12 text-center text-sm text-slate-500" role="status" aria-live="polite">
+                <Loader2 size={30} className="mx-auto mb-3 animate-spin text-indigo-600" aria-hidden="true" />
+                <span>Loading patient medical records...</span>
+              </div>
+            )}
+
+            {!loadingEhr && ehrError && (
+              <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700" role="alert">
+                {ehrError}
+              </div>
+            )}
+
+            {!loadingEhr && !ehrError && patientEhrData && (
+              <div className="space-y-6">
+                  {/* Summary Bar */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <p className="text-[11px] font-bold uppercase text-slate-400">Blood Group</p>
+                      <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                        {patientEhrData.bloodGroup || ehrTargetPatient.bloodGroup || "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <p className="text-[11px] font-bold uppercase text-slate-400">Latest BP</p>
+                      <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                        {patientEhrData.latestVitals?.systolicBp && patientEhrData.latestVitals?.diastolicBp
+                          ? `${patientEhrData.latestVitals.systolicBp}/${patientEhrData.latestVitals.diastolicBp}`
+                          : "—"}{" "}
+                        <span className="text-xs font-normal text-slate-500">mmHg</span>
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <p className="text-[11px] font-bold uppercase text-slate-400">Pulse / SpO2</p>
+                      <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                        {patientEhrData.latestVitals?.heartRateBpm ? `${patientEhrData.latestVitals.heartRateBpm} bpm` : "—"} ·{" "}
+                        {patientEhrData.latestVitals?.oxygenSaturationPercent ? `${patientEhrData.latestVitals.oxygenSaturationPercent}%` : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <p className="text-[11px] font-bold uppercase text-slate-400">BMI / Status</p>
+                      <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                        {patientEhrData.latestVitals?.bmi ? `${patientEhrData.latestVitals.bmi}` : "—"}
+                        {patientEhrData.latestVitals?.bmiCategory && (
+                          <span className="ml-1 text-xs font-semibold text-emerald-600">
+                            ({patientEhrData.latestVitals.bmiCategory})
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 1. Allergies & Conditions */}
+                  <div className="rounded-2xl border border-slate-100 bg-white p-5 space-y-3">
+                    <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                      <ShieldAlert size={18} className="text-amber-500" />
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                        Allergies & Medical Conditions ({patientEhrData.allergiesAndConditions?.length || 0})
+                      </h4>
+                    </div>
+
+                    {(!patientEhrData.allergiesAndConditions || patientEhrData.allergiesAndConditions.length === 0) ? (
+                      <p className="text-xs text-slate-400 italic">No allergies or medical conditions recorded.</p>
+                    ) : (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {patientEhrData.allergiesAndConditions.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className={`rounded-xl border p-3 text-xs ${
+                              entry.recordType === "ALLERGY"
+                                ? "border-rose-100 bg-rose-50/50"
+                                : "border-purple-100 bg-purple-50/50"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-900">{entry.name}</span>
+                              <div className="flex items-center gap-1">
+                                <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-700 shadow-xs">
+                                  {entry.severity}
+                                </span>
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+                                  {entry.status}
+                                </span>
+                              </div>
+                            </div>
+                            {entry.diagnosedDate && (
+                              <p className="mt-1 text-[11px] text-slate-500">
+                                Diagnosed: {new Date(entry.diagnosedDate).toLocaleDateString("en-IN")}
+                              </p>
+                            )}
+                            {entry.notes && (
+                              <p className="mt-1 text-[11px] text-slate-600">{entry.notes}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. Doctor Consultation Notes */}
+                  <div className="rounded-2xl border border-slate-100 bg-white p-5 space-y-3">
+                    <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                      <ClipboardList size={18} className="text-indigo-600" />
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                        Doctor Clinical Consultations ({patientEhrData.consultationRecords?.length || 0})
+                      </h4>
+                    </div>
+
+                    {(!patientEhrData.consultationRecords || patientEhrData.consultationRecords.length === 0) ? (
+                      <p className="text-xs text-slate-400 italic">No doctor consultation records logged yet.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {patientEhrData.consultationRecords.map((consult) => (
+                          <div key={consult.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-2">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                              <div>
+                                <span className="text-[11px] font-bold text-indigo-700 uppercase">
+                                  Consultation #{consult.appointmentId}
+                                </span>
+                                <h5 className="font-bold text-slate-900 text-sm">
+                                  {consult.diagnosis || "Clinical Diagnosis"}
+                                </h5>
+                              </div>
+                              <span className="text-xs text-slate-500 font-medium">
+                                Dr. {consult.doctorName} · {consult.consultationDate ? new Date(consult.consultationDate).toLocaleDateString("en-IN") : ""}
+                              </span>
+                            </div>
+
+                            {consult.symptoms && (
+                              <p className="text-xs text-slate-600">
+                                <span className="font-bold text-slate-700">Symptoms:</span> {consult.symptoms}
+                              </p>
+                            )}
+                            {consult.clinicalObservations && (
+                              <p className="text-xs text-slate-600">
+                                <span className="font-bold text-slate-700">Observations:</span> {consult.clinicalObservations}
+                              </p>
+                            )}
+                            {consult.treatmentPlan && (
+                              <p className="text-xs text-indigo-900 bg-indigo-50 p-2.5 rounded-lg">
+                                <span className="font-bold">Treatment Plan:</span> {consult.treatmentPlan}
+                              </p>
+                            )}
+                            {consult.followUpRecommendations && (
+                              <p className="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-lg">
+                                <span className="font-bold">Follow-up:</span> {consult.followUpRecommendations}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. Physiological Vitals History */}
+                  <div className="rounded-2xl border border-slate-100 bg-white p-5 space-y-3">
+                    <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                      <Activity size={18} className="text-rose-500" />
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                        Vitals Tracking History ({patientEhrData.vitalsHistory?.length || 0})
+                      </h4>
+                    </div>
+
+                    {(!patientEhrData.vitalsHistory || patientEhrData.vitalsHistory.length === 0) ? (
+                      <p className="text-xs text-slate-400 italic">No vitals readings recorded.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 uppercase text-slate-400">
+                            <tr>
+                              <th className="p-2 font-semibold">Date & Time</th>
+                              <th className="p-2 font-semibold">BP (mmHg)</th>
+                              <th className="p-2 font-semibold">Pulse</th>
+                              <th className="p-2 font-semibold">Resp.</th>
+                              <th className="p-2 font-semibold">Temp</th>
+                              <th className="p-2 font-semibold">SpO2</th>
+                              <th className="p-2 font-semibold">Weight / Height</th>
+                              <th className="p-2 font-semibold">BMI</th>
+                              <th className="p-2 font-semibold">Recorded By</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {patientEhrData.vitalsHistory.map((v) => (
+                              <tr key={v.id}>
+                                <td className="p-2 text-slate-700">{v.recordedAt ? new Date(v.recordedAt).toLocaleString("en-IN") : "—"}</td>
+                                <td className="p-2 font-bold text-slate-900">{v.systolicBp && v.diastolicBp ? `${v.systolicBp}/${v.diastolicBp}` : "—"}</td>
+                                <td className="p-2 text-slate-700">{v.heartRateBpm ? `${v.heartRateBpm} bpm` : "—"}</td>
+                                <td className="p-2 text-slate-700">{v.respiratoryRateBpm ? `${v.respiratoryRateBpm} /min` : "—"}</td>
+                                <td className="p-2 text-slate-700">{v.temperatureCelsius ? `${v.temperatureCelsius} °C` : "—"}</td>
+                                <td className="p-2 text-slate-700">{v.oxygenSaturationPercent ? `${v.oxygenSaturationPercent}%` : "—"}</td>
+                                <td className="p-2 text-slate-700">{v.weightKg ? `${v.weightKg} kg` : "—"}{v.heightCm ? ` / ${v.heightCm} cm` : ""}</td>
+                                <td className="p-2">{v.bmi ? `${v.bmi} (${v.bmiCategory || "Normal"})` : "—"}</td>
+                                <td className="p-2">
+                                  {v.recordedByDoctorName ? (
+                                    <span className="rounded bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700">
+                                      Dr. {v.recordedByDoctorName}
+                                    </span>
+                                  ) : (
+                                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                      Self-Recorded
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 4. Diagnostic Documents */}
+                  <div className="rounded-2xl border border-slate-100 bg-white p-5 space-y-3">
+                    <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                      <FileText size={18} className="text-cyan-600" />
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                        Diagnostic Reports & Medical Documents ({patientEhrData.documents?.length || 0})
+                      </h4>
+                    </div>
+
+                    {(!patientEhrData.documents || patientEhrData.documents.length === 0) ? (
+                      <p className="text-xs text-slate-400 italic">No diagnostic documents uploaded.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {patientEhrData.documents.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="rounded bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-800">
+                                  {doc.documentCategory}
+                                </span>
+                                <span className="font-bold text-slate-900 text-xs">{doc.title}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-0.5">
+                                {doc.originalFileName} · {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString("en-IN") : ""}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAdminDownloadDoc(doc)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-cyan-700 transition"
+                            >
+                              <Download size={13} /> Download
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Footer */}
+              <div className="flex justify-end border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEhrModalOpen(false)}
+                  className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </AccessibleModal>
     </div>
   );
 }

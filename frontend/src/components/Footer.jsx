@@ -73,7 +73,7 @@ function Footer() {
             <a
               href="/#home"
               onClick={(event) => handleScroll(event, "home")}
-              aria-label="MediCare - Back to Home"
+              aria-label="MediCare Plus - Back to Home"
               className="mb-6 inline-flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-600">
@@ -85,14 +85,14 @@ function Footer() {
               </div>
 
               <span className="text-2xl font-bold text-white">
-                Medi<span className="text-cyan-400">Care</span>
+                Medi<span className="text-cyan-400">Care</span>{" "}
+                <span className="text-teal-400 font-black">Plus</span>
               </span>
             </a>
 
-            <p className="mb-6 text-sm leading-7 text-slate-400">
-              Your trusted healthcare administration platform.
-              Connecting patients with healthcare professionals
-              through a simple and accessible digital experience.
+            <p className="mb-4 text-sm leading-7 text-slate-400">
+              Smarter Care. Better Connections. Connecting patients with healthcare
+              professionals through a modern, accessible administration console.
             </p>
 
             <p className="text-sm font-semibold text-cyan-400">
@@ -114,6 +114,11 @@ function Footer() {
               <li>
                 <Link to="/doctors" className={linkClass}>
                   Medical Team
+                </Link>
+              </li>
+              <li>
+                <Link to="/verify-prescription" className={linkClass}>
+                  Verify Prescription
                 </Link>
               </li>
               <li><a {...sectionLink("contact")}>Contact Us</a></li>
@@ -187,7 +192,7 @@ function Footer() {
         <div className="mt-14 flex flex-col items-center justify-between gap-5 border-t border-slate-800 pt-8 md:flex-row">
 
           <p className="text-center text-sm text-slate-500">
-            © {new Date().getFullYear()} MediCare. All Rights Reserved.
+            © {new Date().getFullYear()} MediCare Plus. All Rights Reserved.
           </p>
 
           <nav aria-label="Footer navigation">

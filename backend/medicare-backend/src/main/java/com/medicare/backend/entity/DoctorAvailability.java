@@ -44,6 +44,9 @@ public class DoctorAvailability {
     @Column(name = "break_end")
     private LocalTime breakEnd;
 
+    @Column(name = "consultation_duration")
+    private Integer consultationDuration = 30;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -123,6 +126,14 @@ public class DoctorAvailability {
 
     public void setBreakEnd(LocalTime breakEnd) {
         this.breakEnd = breakEnd;
+    }
+
+    public Integer getConsultationDuration() {
+        return consultationDuration != null && consultationDuration > 0 ? consultationDuration : 30;
+    }
+
+    public void setConsultationDuration(Integer consultationDuration) {
+        this.consultationDuration = consultationDuration;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -19,9 +19,21 @@ import {
   Stethoscope,
   Printer,
   CheckCircle,
+  Activity,
+  Scale,
+  Heart,
+  ShieldAlert,
+  Upload,
+  Download,
+  Plus,
+  Trash2,
+  ClipboardList,
+  RotateCcw,
+  AlertCircle,
 } from "lucide-react";
 
 import api from "../services/api";
+import AccessibleModal from "../components/ui/AccessibleModal";
 
 function DoctorPatients({ isDeactivated = false }) {
   const [patients, setPatients] = useState([]);
@@ -29,10 +41,15 @@ function DoctorPatients({ isDeactivated = false }) {
   const [genderFilter, setGenderFilter] = useState("All");
   const [selectedPatient, setSelectedPatient] = useState(null);
 
-  const [activeTab, setActiveTab] = useState("overview"); // "overview" | "prescriptions"
+  const [activeTab, setActiveTab] = useState("overview"); // "overview" | "prescriptions" | "ehr"
   const [patientPrescriptions, setPatientPrescriptions] = useState([]);
   const [loadingPrescriptions, setLoadingPrescriptions] = useState(false);
   const [prescriptionsError, setPrescriptionsError] = useState("");
+
+  // EHR State (Module 5)
+  const [patientEhr, setPatientEhr] = useState(null);
+  const [loadingEhr, setLoadingEhr] = useState(false);
+  const [ehrError, setEhrError] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -113,12 +130,57 @@ function DoctorPatients({ isDeactivated = false }) {
     }
   };
 
+  const fetchPatientEhr = async (patientId) => {
+    if (!patientId) return;
+    try {
+      setLoadingEhr(true);
+      setEhrError("");
+      const response = await api.get(`/medical-records/patient/${patientId}`);
+      setPatientEhr(response.data);
+    } catch (err) {
+      console.error("Failed to load patient EHR:", err);
+      setEhrError(
+        err.response?.data?.message ||
+          "Unable to load medical records for this patient."
+      );
+    } finally {
+      setLoadingEhr(false);
+    }
+  };
+
+  const handleDoctorDownloadDoc = async (doc) => {
+    try {
+      const response = await api.get(`/medical-records/documents/${doc.id}/download`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([response.data], { type: doc.fileMimeType || "application/octet-stream" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", doc.originalFileName || `patient-document-${doc.id}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Doctor document download failed:", err);
+      alert(err.response?.data?.message || "Failed to download document.");
+    }
+  };
+
   const handleOpenPatient = (patient, tab = "overview") => {
     setSelectedPatient(patient);
     setActiveTab(tab);
     setPatientPrescriptions([]);
     setPrescriptionsError("");
-    fetchPatientPrescriptions(patient.patientId);
+    setPatientEhr(null);
+    setEhrError("");
+
+    if (tab === "prescriptions") {
+      fetchPatientPrescriptions(patient.patientId);
+    } else if (tab === "ehr") {
+      fetchPatientEhr(patient.patientId);
+    }
   };
 
   // ==========================================
@@ -353,13 +415,18 @@ function DoctorPatients({ isDeactivated = false }) {
         {/* SEARCH AND FILTER */}
         <div className="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row">
           <div className="relative flex-1">
+            <label htmlFor="doctor-patient-search" className="sr-only">
+              Search patients
+            </label>
             <Search
               size={19}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
             />
 
             <input
-              type="text"
+              id="doctor-patient-search"
+              type="search"
               placeholder="Search by patient name or ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -371,9 +438,11 @@ function DoctorPatients({ isDeactivated = false }) {
             <Filter
               size={17}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
             />
 
             <select
+              aria-label="Filter patients by gender"
               value={genderFilter}
               onChange={(e) => setGenderFilter(e.target.value)}
               className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-8 text-sm outline-none focus:border-cyan-500 sm:w-48"
@@ -450,19 +519,33 @@ function DoctorPatients({ isDeactivated = false }) {
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        type="button"
                         onClick={() => handleOpenPatient(patient, "overview")}
                         title="View patient details"
-                        className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100"
+                        aria-label={`View patient details for ${patient.name}`}
+                        className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none"
                       >
-                        <Eye size={18} />
+                        <Eye size={18} aria-hidden="true" />
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => handleOpenPatient(patient, "prescriptions")}
                         title="View patient prescriptions"
-                        className="rounded-lg bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100"
+                        aria-label={`View prescriptions for ${patient.name}`}
+                        className="rounded-lg bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none"
                       >
-                        <FileText size={18} />
+                        <FileText size={18} aria-hidden="true" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPatient(patient, "ehr")}
+                        title="View Medical Records (EHR)"
+                        aria-label={`View Medical Records (EHR) for ${patient.name}`}
+                        className="rounded-lg bg-indigo-50 p-2 text-indigo-600 transition hover:bg-indigo-100 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none"
+                      >
+                        <ClipboardList size={18} aria-hidden="true" />
                       </button>
                     </div>
                   </td>
@@ -501,81 +584,87 @@ function DoctorPatients({ isDeactivated = false }) {
       </div>
 
       {/* PATIENT DETAILS MODAL */}
-      {selectedPatient && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl print-receipt-modal">
-            {/* MODAL HEADER */}
-            <div className="flex items-center justify-between border-b border-slate-100 p-6">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  {selectedPatient.name}
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  {selectedPatient.id} · {selectedPatient.gender}
-                </p>
-              </div>
-
-              <div className="no-print flex items-center gap-2">
-                {activeTab === "prescriptions" &&
-                  patientPrescriptions.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => window.print()}
-                      title="Print prescriptions"
-                      className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition hover:bg-slate-50"
-                    >
-                      <Printer size={18} />
-                    </button>
-                  )}
+      <AccessibleModal
+        isOpen={Boolean(selectedPatient)}
+        onClose={() => setSelectedPatient(null)}
+        title={selectedPatient ? selectedPatient.name : ""}
+        description={selectedPatient ? `${selectedPatient.id} · ${selectedPatient.gender}` : ""}
+        maxWidth="max-w-2xl"
+      >
+        {selectedPatient && (
+          <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1 print-receipt-modal">
+            {/* TAB SELECTOR & PRINT */}
+            <div className="no-print flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-3 pt-2">
+              <div className="flex border-b border-transparent">
                 <button
-                  onClick={() => setSelectedPatient(null)}
-                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-                  aria-label="Close patient details"
+                  type="button"
+                  onClick={() => setActiveTab("overview")}
+                  className={`flex items-center gap-2 border-b-2 px-3 pb-2 text-xs font-semibold transition ${
+                    activeTab === "overview"
+                      ? "border-cyan-600 text-cyan-700"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
                 >
-                  <X size={20} />
+                  <UserRound size={15} aria-hidden="true" />
+                  Patient Information
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("prescriptions");
+                    fetchPatientPrescriptions(selectedPatient.patientId);
+                  }}
+                  className={`flex items-center gap-2 border-b-2 px-3 pb-2 text-xs font-semibold transition ${
+                    activeTab === "prescriptions"
+                      ? "border-emerald-600 text-emerald-700"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <FileText size={15} aria-hidden="true" />
+                  <span>Prescriptions</span>
+                  {patientPrescriptions.length > 0 && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                      {patientPrescriptions.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("ehr");
+                    fetchPatientEhr(selectedPatient.patientId);
+                  }}
+                  className={`flex items-center gap-2 border-b-2 px-3 pb-2 text-xs font-semibold transition ${
+                    activeTab === "ehr"
+                      ? "border-indigo-600 text-indigo-700"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <ClipboardList size={15} aria-hidden="true" />
+                  <span>Medical Records (EHR)</span>
+                  {patientEhr?.consultationRecords && patientEhr.consultationRecords.length > 0 && (
+                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-800">
+                      {patientEhr.consultationRecords.length}
+                    </span>
+                  )}
                 </button>
               </div>
-            </div>
 
-            {/* TAB SELECTOR */}
-            <div className="no-print flex border-b border-slate-100 bg-slate-50/50 px-6 pt-3">
-              <button
-                type="button"
-                onClick={() => setActiveTab("overview")}
-                className={`flex items-center gap-2 border-b-2 px-4 pb-3 text-sm font-semibold transition ${
-                  activeTab === "overview"
-                    ? "border-cyan-600 text-cyan-700"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <UserRound size={16} />
-                Patient Information
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("prescriptions");
-                  fetchPatientPrescriptions(selectedPatient.patientId);
-                }}
-                className={`flex items-center gap-2 border-b-2 px-4 pb-3 text-sm font-semibold transition ${
-                  activeTab === "prescriptions"
-                    ? "border-emerald-600 text-emerald-700"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <FileText size={16} />
-                <span>Prescriptions</span>
-                {patientPrescriptions.length > 0 && (
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-                    {patientPrescriptions.length}
-                  </span>
-                )}
-              </button>
+              {activeTab === "prescriptions" && patientPrescriptions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  title="Print prescriptions"
+                  aria-label="Print prescriptions"
+                  className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none"
+                >
+                  <Printer size={16} aria-hidden="true" />
+                </button>
+              )}
             </div>
 
             {/* MODAL BODY */}
-            <div className="p-6">
+            <div className="pt-2">
               {activeTab === "overview" ? (
                 <>
                   {/* PATIENT BASIC INFORMATION */}
@@ -675,10 +764,11 @@ function DoctorPatients({ isDeactivated = false }) {
                 /* PRESCRIPTIONS TAB */
                 <div>
                   {loadingPrescriptions ? (
-                    <div className="flex min-h-[220px] flex-col items-center justify-center">
+                    <div className="flex min-h-[220px] flex-col items-center justify-center" role="status" aria-live="polite">
                       <RefreshCw
                         size={28}
                         className="animate-spin text-emerald-600"
+                        aria-hidden="true"
                       />
                       <p className="mt-3 text-sm font-medium text-slate-500">
                         Loading patient prescriptions...
@@ -825,10 +915,270 @@ function DoctorPatients({ isDeactivated = false }) {
                   )}
                 </div>
               )}
+
+              {/* EHR TAB */}
+              {activeTab === "ehr" && (
+                <div className="space-y-6">
+                  {loadingEhr && (
+                    <div className="p-12 text-center text-sm text-slate-500" role="status" aria-live="polite">
+                      <RefreshCw size={24} className="mx-auto mb-2 animate-spin text-indigo-600" aria-hidden="true" />
+                      <p>Retrieving patient electronic health records...</p>
+                    </div>
+                  )}
+
+                  {!loadingEhr && ehrError && (
+                    <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+                      <AlertCircle size={18} className="mr-2 inline text-red-500" />
+                      {ehrError}
+                    </div>
+                  )}
+
+                  {!loadingEhr && !ehrError && patientEhr && (
+                    <div className="space-y-6">
+                      {/* Clinical Overview Bar */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <p className="text-[11px] font-bold uppercase text-slate-400">Blood Group</p>
+                          <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                            {patientEhr.bloodGroup || selectedPatient.bloodGroup || "—"}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <p className="text-[11px] font-bold uppercase text-slate-400">Latest BP</p>
+                          <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                            {patientEhr.latestVitals?.systolicBp && patientEhr.latestVitals?.diastolicBp
+                              ? `${patientEhr.latestVitals.systolicBp}/${patientEhr.latestVitals.diastolicBp}`
+                              : "—"}{" "}
+                            <span className="text-xs font-normal text-slate-500">mmHg</span>
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <p className="text-[11px] font-bold uppercase text-slate-400">Pulse / SpO2</p>
+                          <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                            {patientEhr.latestVitals?.heartRateBpm ? `${patientEhr.latestVitals.heartRateBpm} bpm` : "—"} ·{" "}
+                            {patientEhr.latestVitals?.oxygenSaturationPercent ? `${patientEhr.latestVitals.oxygenSaturationPercent}%` : "—"}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <p className="text-[11px] font-bold uppercase text-slate-400">BMI Index</p>
+                          <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                            {patientEhr.latestVitals?.bmi ? `${patientEhr.latestVitals.bmi}` : "—"}
+                            {patientEhr.latestVitals?.bmiCategory && (
+                              <span className="ml-1 text-xs font-semibold text-emerald-600">
+                                ({patientEhr.latestVitals.bmiCategory})
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 1. Allergies & Known Conditions */}
+                      <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-3">
+                        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                          <ShieldAlert size={17} className="text-amber-500" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Recorded Allergies & Conditions ({patientEhr.allergiesAndConditions?.length || 0})
+                          </h4>
+                        </div>
+
+                        {(!patientEhr.allergiesAndConditions || patientEhr.allergiesAndConditions.length === 0) ? (
+                          <p className="text-xs text-slate-400 italic">No allergies or medical conditions recorded.</p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {patientEhr.allergiesAndConditions.map((entry) => (
+                              <div
+                                key={entry.id}
+                                className={`rounded-xl border px-3 py-2 text-xs ${
+                                  entry.recordType === "ALLERGY"
+                                    ? "border-rose-100 bg-rose-50/60"
+                                    : "border-purple-100 bg-purple-50/60"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-900">{entry.name}</span>
+                                  <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 shadow-xs">
+                                    {entry.severity}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500">
+                                    ({entry.status})
+                                  </span>
+                                </div>
+                                {entry.notes && (
+                                  <p className="mt-1 text-[11px] text-slate-600">{entry.notes}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. Clinical Consultation Records */}
+                      <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-3">
+                        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                          <ClipboardList size={17} className="text-indigo-600" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Clinical Consultation Records ({patientEhr.consultationRecords?.length || 0})
+                          </h4>
+                        </div>
+
+                        {(!patientEhr.consultationRecords || patientEhr.consultationRecords.length === 0) ? (
+                          <p className="text-xs text-slate-400 italic">No formal consultation records entered yet.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {patientEhr.consultationRecords.map((consult) => (
+                              <div key={consult.id} className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-2">
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                  <div>
+                                    <span className="text-[11px] font-bold text-indigo-700 uppercase">
+                                      Consultation #{consult.appointmentId}
+                                    </span>
+                                    <h5 className="font-bold text-slate-900 text-sm">
+                                      {consult.diagnosis || "Clinical Diagnosis"}
+                                    </h5>
+                                  </div>
+                                  <span className="text-xs text-slate-400">
+                                    {consult.consultationDate ? new Date(consult.consultationDate).toLocaleDateString("en-IN") : ""} · Dr. {consult.doctorName}
+                                  </span>
+                                </div>
+
+                                {consult.symptoms && (
+                                  <p className="text-xs text-slate-600">
+                                    <span className="font-bold text-slate-700">Symptoms:</span> {consult.symptoms}
+                                  </p>
+                                )}
+                                {consult.clinicalObservations && (
+                                  <p className="text-xs text-slate-600">
+                                    <span className="font-bold text-slate-700">Observations:</span> {consult.clinicalObservations}
+                                  </p>
+                                )}
+                                {consult.treatmentPlan && (
+                                  <p className="text-xs text-indigo-900 bg-indigo-50/60 p-2 rounded-lg">
+                                    <span className="font-bold">Treatment Plan:</span> {consult.treatmentPlan}
+                                  </p>
+                                )}
+                                {consult.followUpRecommendations && (
+                                  <p className="text-xs text-amber-900 bg-amber-50/60 p-2 rounded-lg">
+                                    <span className="font-bold">Follow-up:</span> {consult.followUpRecommendations}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 3. Vitals History */}
+                      <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-3">
+                        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                          <Activity size={17} className="text-rose-500" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Vitals History ({patientEhr.vitalsHistory?.length || 0})
+                          </h4>
+                        </div>
+
+                        {(!patientEhr.vitalsHistory || patientEhr.vitalsHistory.length === 0) ? (
+                          <p className="text-xs text-slate-400 italic">No vitals readings recorded.</p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-slate-50 uppercase text-slate-400">
+                                <tr>
+                                  <th className="p-2 font-semibold">Date</th>
+                                  <th className="p-2 font-semibold">BP</th>
+                                  <th className="p-2 font-semibold">Pulse</th>
+                                  <th className="p-2 font-semibold">SpO2</th>
+                                  <th className="p-2 font-semibold">Temp</th>
+                                  <th className="p-2 font-semibold">Weight</th>
+                                  <th className="p-2 font-semibold">BMI</th>
+                                  <th className="p-2 font-semibold">Source</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {patientEhr.vitalsHistory.map((v) => (
+                                  <tr key={v.id}>
+                                    <td className="p-2 text-slate-700">{v.recordedAt ? new Date(v.recordedAt).toLocaleDateString("en-IN") : "—"}</td>
+                                    <td className="p-2 font-bold text-slate-900">{v.systolicBp && v.diastolicBp ? `${v.systolicBp}/${v.diastolicBp}` : "—"}</td>
+                                    <td className="p-2 text-slate-700">{v.heartRateBpm ? `${v.heartRateBpm} bpm` : "—"}</td>
+                                    <td className="p-2 text-slate-700">{v.oxygenSaturationPercent ? `${v.oxygenSaturationPercent}%` : "—"}</td>
+                                    <td className="p-2 text-slate-700">{v.temperatureCelsius ? `${v.temperatureCelsius} °C` : "—"}</td>
+                                    <td className="p-2 text-slate-700">{v.weightKg ? `${v.weightKg} kg` : "—"}</td>
+                                    <td className="p-2">{v.bmi ? `${v.bmi} (${v.bmiCategory || "Normal"})` : "—"}</td>
+                                    <td className="p-2">
+                                      {v.recordedByDoctorName ? (
+                                        <span className="rounded bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700">
+                                          Dr. {v.recordedByDoctorName}
+                                        </span>
+                                      ) : (
+                                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                          Self
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 4. Diagnostic Documents */}
+                      <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-3">
+                        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                          <FileText size={17} className="text-cyan-600" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Diagnostic Reports & Documents ({patientEhr.documents?.length || 0})
+                          </h4>
+                        </div>
+
+                        {(!patientEhr.documents || patientEhr.documents.length === 0) ? (
+                          <p className="text-xs text-slate-400 italic">No diagnostic documents uploaded for this patient.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {patientEhr.documents.map((doc) => (
+                              <div key={doc.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-3">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="rounded bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-800">
+                                      {doc.documentCategory}
+                                    </span>
+                                    <span className="font-bold text-slate-900 text-xs">{doc.title}</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 mt-0.5">
+                                    {doc.originalFileName} · {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString("en-IN") : ""}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDoctorDownloadDoc(doc)}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-cyan-700 transition focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none"
+                                >
+                                  <Download size={13} aria-hidden="true" /> Download
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* MODAL FOOTER */}
+            <div className="no-print flex justify-end pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSelectedPatient(null)}
+                className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none"
+              >
+                Close
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </AccessibleModal>
     </div>
   );
 }

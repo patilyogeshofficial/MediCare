@@ -121,6 +121,11 @@ public class SecurityConfig {
                         "Content-Type"
                 ));
 
+        configuration.setExposedHeaders(
+                List.of(
+                        "Content-Disposition"
+                ));
+
         // JWT is sent through the Authorization header.
         configuration.setAllowCredentials(false);
 
@@ -170,6 +175,12 @@ public class SecurityConfig {
                                 "/api/contact-messages"
                         ).permitAll()
 
+                        // Public platform statistics
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/public/**"
+                        ).permitAll()
+
                         // Public doctor listing
                         .requestMatchers(
                                 HttpMethod.GET,
@@ -179,7 +190,8 @@ public class SecurityConfig {
                         // Public specializations
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/specializations"
+                                "/api/specializations",
+                                "/api/specializations/*"
                         ).permitAll()
 
                         // All other endpoints require authentication

@@ -237,6 +237,17 @@ function DoctorDashboard() {
     }
   };
 
+  // Escape key handler for mobile sidebar (WCAG 2.1.2)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [sidebarOpen]);
+
   return (
     <div className="min-h-screen bg-slate-50">
 
@@ -263,7 +274,8 @@ function DoctorDashboard() {
 
             <div>
               <h1 className="text-xl font-extrabold text-slate-900">
-                Medi<span className="text-cyan-600">Care</span>
+                Medi<span className="text-cyan-600">Care</span>{" "}
+                <span className="text-teal-600 font-black">Plus</span>
               </h1>
 
               <p className="text-xs text-slate-500">
@@ -325,7 +337,7 @@ function DoctorDashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="min-h-screen lg:ml-64">
+      <main id="main-content" tabIndex="-1" className="min-h-screen lg:ml-64">
 
         {/* TOPBAR */}
         <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-100 bg-white px-5 sm:px-8">
@@ -345,7 +357,7 @@ function DoctorDashboard() {
               </h2>
 
               <p className="hidden text-xs text-slate-500 sm:block">
-                Welcome to your MediCare Doctor Portal
+                Welcome to your MediCare Plus Doctor Portal
               </p>
             </div>
           </div>
@@ -716,7 +728,7 @@ function DoctorDashboard() {
 
               {/* FOOTER */}
               <footer className="mt-8 pb-4 text-center text-sm text-slate-400">
-                © 2026 MediCare Healthcare Administration Console. All
+                © 2026 MediCare Plus — The Healthcare Administration Console. All
                 rights reserved.
               </footer>
 
