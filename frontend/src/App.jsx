@@ -20,10 +20,16 @@ import ServiceDetails from "./pages/ServiceDetails";
 import HealthcareServiceDetails from "./pages/HealthcareServiceDetails";
 import ScrollToTop from "./components/ScrollToTop";
 import AllServices from "./pages/AllServices";
+import PrescriptionVerification from "./pages/PrescriptionVerification";
 
 function App() {
   return (
     <>
+      {/* Skip to Main Content Link for Keyboard and Screen-Reader Users (WCAG 2.4.1) */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
       <Toaster position="top-right" />
 
       {/* Automatically scroll to top on page navigation */}
@@ -38,6 +44,7 @@ function App() {
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/doctors" element={<AllDoctors />} />
+        <Route path="/verify-prescription" element={<PrescriptionVerification />} />
 
         {/* MEDICAL SERVICE ROUTES */}
         <Route path="/services/:serviceSlug" element={<ServiceDetails />} />

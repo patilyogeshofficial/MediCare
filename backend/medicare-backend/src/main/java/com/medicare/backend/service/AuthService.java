@@ -29,19 +29,22 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final NotificationService notificationService;
 
     public AuthService(
             UserRepository userRepository,
             PatientRepository patientRepository,
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
-            JwtService jwtService) {
+            JwtService jwtService,
+            NotificationService notificationService) {
 
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.notificationService = notificationService;
     }
 
     // Register new PATIENT
@@ -74,6 +77,18 @@ public class AuthService {
         patient.setUserId(savedUser.getUserId());
 
         patientRepository.save(patient);
+
+        // Notify admins about new patient registration
+        notificationService.createAdminActivityNotification(
+                "New Patient Registered",
+                "A new patient has registered: " + savedUser.getFullName() + " (" + savedUser.getEmail() + ").",
+                "NEW_USER_REGISTRATION",
+                null,
+                null,
+                "ACCOUNT",
+                "NORMAL",
+                "/admin/patients"
+        );
 
         // 3. Generate JWT token
         UserDetails userDetails =

@@ -27,8 +27,26 @@ public class Notification {
     @Column(name = "message", nullable = false)
     private String message;
 
-    @Column(name = "type", nullable = false, length = 40)
+    @Column(name = "type", nullable = false, length = 60)
     private String type;
+
+    @Column(name = "category", length = 50, nullable = false)
+    private String category = "GENERAL";
+
+    @Column(name = "priority", length = 20, nullable = false)
+    private String priority = "NORMAL";
+
+    @Column(name = "action_url", length = 255)
+    private String actionUrl;
+
+    @Column(name = "is_archived", nullable = false)
+    private Boolean isArchived = false;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
+    @Column(name = "dedup_key", length = 150)
+    private String dedupKey;
 
     @Column(name = "appointment_id")
     private Long appointmentId;
@@ -113,5 +131,57 @@ public class Notification {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+
+    public String getActionUrl() {
+        return actionUrl;
+    }
+
+    public void setActionUrl(String actionUrl) {
+        this.actionUrl = actionUrl;
+    }
+
+    public Boolean getIsArchived() {
+        return isArchived;
+    }
+
+    public void setIsArchived(Boolean isArchived) {
+        this.isArchived = isArchived;
+    }
+
+    public OffsetDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(OffsetDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDedupKey() {
+        return dedupKey;
+    }
+
+    public void setDedupKey(String dedupKey) {
+        this.dedupKey = dedupKey;
     }
 }

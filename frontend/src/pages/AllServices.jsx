@@ -10,7 +10,7 @@ function AllServices() {
     <>
       <Navbar />
 
-      <main className="min-h-screen bg-slate-50">
+      <main id="main-content" tabIndex="-1" className="min-h-screen bg-slate-50">
         {/* HERO SECTION */}
         <section className="bg-gradient-to-r from-cyan-700 to-blue-700 px-6 py-20 text-center text-white lg:py-24">
           <div className="mx-auto max-w-4xl">

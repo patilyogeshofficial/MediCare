@@ -5,6 +5,7 @@ import {
   UserRound,
   CalendarDays,
   Stethoscope,
+  Award,
   Settings,
   LogOut,
   Menu,
@@ -18,6 +19,7 @@ import {
   Mail,
   ChevronRight,
   FileText,
+  BarChart3,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -33,16 +35,20 @@ import AdminNotifications from "./AdminNotifications";
 import AdminPatients from "./AdminPatients";
 import AdminSettings from "./AdminSettings";
 import AdminPrescriptions from "./AdminPrescriptions";
+import AdminSpecializations from "./AdminSpecializations";
+import AdminAnalytics from "./AdminAnalytics";
 
 const navigation = [
   { name: "Dashboard", icon: LayoutDashboard },
+  { name: "Analytics & Reports", icon: BarChart3 },
   { name: "Appointments", icon: CalendarDays },
   { name: "Patients", icon: Users },
   { name: "Doctors", icon: Stethoscope },
+  { name: "Specializations", icon: Award },
+  { name: "Prescriptions", icon: FileText },
   { name: "Contact Messages", icon: Mail },
   { name: "Notifications", icon: Bell },
   { name: "Settings", icon: Settings },
-  { name: "Prescriptions", icon: FileText },
 ];
 
 function AdminDashboard() {
@@ -50,7 +56,18 @@ function AdminDashboard() {
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState("Dashboard");
+  const [activeMenu, setActiveMenu] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab) {
+        const found = navigation.find((n) => n.name.toLowerCase() === tab.toLowerCase());
+        if (found) return found.name;
+        if (tab.toLowerCase() === "analytics") return "Analytics & Reports";
+      }
+    } catch {}
+    return "Dashboard";
+  });
   const [adminUnreadCount, setAdminUnreadCount] = useState(0);
 
   // Dashboard summary
@@ -421,6 +438,17 @@ function AdminDashboard() {
   const adminName = user?.fullName || "Administrator";
   const adminInitial = adminName.charAt(0).toUpperCase();
 
+  // Escape key handler for mobile sidebar (WCAG 2.1.2)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [sidebarOpen]);
+
   return (
     <div className="min-h-screen bg-slate-50">
 
@@ -448,7 +476,8 @@ function AdminDashboard() {
 
             <div>
               <h1 className="text-xl font-extrabold text-slate-900">
-                Medi<span className="text-cyan-600">Care</span>
+                Medi<span className="text-cyan-600">Care</span>{" "}
+                <span className="text-teal-600 font-black">Plus</span>
               </h1>
               <p className="text-xs font-medium text-slate-500">
                 Admin Console
@@ -551,7 +580,7 @@ function AdminDashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="min-h-screen lg:ml-64">
+      <main id="main-content" tabIndex="-1" className="min-h-screen lg:ml-64">
 
         {/* TOPBAR */}
         <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-100 bg-white px-5 sm:px-8">
@@ -572,7 +601,7 @@ function AdminDashboard() {
                 {activeMenu}
               </h2>
               <p className="hidden text-xs text-slate-500 sm:block">
-                Welcome to MediCare Admin Panel
+                Welcome to MediCare Plus Admin Panel
               </p>
             </div>
           </div>
@@ -622,14 +651,18 @@ function AdminDashboard() {
             <AdminPatients />
           ) : activeMenu === "Doctors" ? (
             <AdminDoctors />
-            ) : activeMenu === "Prescriptions" ? (
-  <AdminPrescriptions />
+          ) : activeMenu === "Specializations" ? (
+            <AdminSpecializations />
+          ) : activeMenu === "Prescriptions" ? (
+            <AdminPrescriptions />
           ) : activeMenu === "Contact Messages" ? (
             <AdminContactMessages />
           ) : activeMenu === "Notifications" ? (
             <AdminNotifications />
           ) : activeMenu === "Settings" ? (
             <AdminSettings />
+          ) : activeMenu === "Analytics & Reports" || activeMenu === "Analytics" ? (
+            <AdminAnalytics />
           ) : (
             <>
               {/* PAGE INTRO */}
@@ -643,13 +676,24 @@ function AdminDashboard() {
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600">
-                  <CalendarDays className="mr-2 inline" size={17} />
-                  {new Date().toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })}
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveMenu("Analytics & Reports")}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-cyan-600/20 transition hover:from-cyan-700 hover:to-blue-700 active:scale-95"
+                  >
+                    <BarChart3 size={15} />
+                    View Full Analytics
+                  </button>
+
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600">
+                    <CalendarDays className="mr-2 inline" size={17} />
+                    {new Date().toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -928,7 +972,7 @@ function AdminDashboard() {
 
               {/* FOOTER */}
               <footer className="mt-8 pb-4 text-center text-sm text-slate-400">
-                © 2026 MediCare Healthcare Administration Console. All rights
+                © 2026 MediCare Plus — The Healthcare Administration Console. All rights
                 reserved.
               </footer>
             </>

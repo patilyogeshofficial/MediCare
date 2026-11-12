@@ -18,7 +18,7 @@ function HowItWorks() {
       icon: UserRound,
       title: "Create Your Account",
       description:
-        "Register with MediCare to access your personal healthcare dashboard.",
+        "Register with MediCare Plus to access your personal healthcare dashboard.",
     },
     {
       number: "02",
@@ -72,12 +72,12 @@ function HowItWorks() {
           </span>
 
           <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
-            How MediCare Works
+            How MediCare Plus Works
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-600">
             Getting quality healthcare should be simple. Follow these four
-            easy steps to begin your healthcare journey with MediCare.
+            easy steps to begin your healthcare journey with MediCare Plus.
           </p>
         </div>
 

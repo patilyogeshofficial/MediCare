@@ -111,7 +111,7 @@ function Testimonials() {
 
         {/* DISCLAIMER */}
         <p className="mt-8 text-center text-xs text-slate-400">
-          Illustrative testimonials and ratings for the MediCare demo homepage.
+          Illustrative testimonials and ratings for the MediCare Plus demonstration.
         </p>
 
       </div>

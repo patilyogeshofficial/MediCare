@@ -183,7 +183,7 @@ function AllDoctors() {
       </section>
 
       {/* DOCTORS SECTION */}
-      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <main id="main-content" tabIndex="-1" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
 
         {/* SECTION HEADING */}
         <div className="mb-8">

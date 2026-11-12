@@ -14,7 +14,12 @@ import {
   AlertCircle,
   FileText,
   Lock,
+  History,
+  RotateCcw,
+  Timer,
 } from "lucide-react";
+import StatusBadge from "../components/ui/StatusBadge";
+import AccessibleModal from "../components/ui/AccessibleModal";
 import toast from "react-hot-toast";
 import api from "../services/api";
 
@@ -87,6 +92,28 @@ function AdminAppointments() {
 
   const [updatingId, setUpdatingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+
+  // Audit Trail State
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
+  const [auditTarget, setAuditTarget] = useState(null);
+
+  const openAuditModal = async (appointment) => {
+    setAuditTarget(appointment);
+    setAuditModalOpen(true);
+    setAuditLoading(true);
+    try {
+      const res = await api.get(`/admin/audit-logs/APPOINTMENT/${appointment.appointmentId}`);
+      setAuditLogs(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to load appointment audit logs:", err);
+      toast.error("Unable to load audit trail.");
+      setAuditLogs([]);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
 
   // Fetch appointments and related details.
   const fetchAppointments = async (showLoader = true) => {
@@ -265,6 +292,25 @@ function AdminAppointments() {
 
     if (!newStatus || newStatus === currentStatus) return;
 
+    // Terminal state protection
+    if (["COMPLETED", "CANCELLED", "REJECTED"].includes(currentStatus)) {
+      toast.error(
+        `Appointment #${appointment.appointmentId} is in a terminal state (${formatStatus(currentStatus)}) and cannot be modified.`
+      );
+      return;
+    }
+
+    // Directional transition protection
+    if (currentStatus === "PENDING" && !["CONFIRMED", "REJECTED", "CANCELLED"].includes(newStatus)) {
+      toast.error("Pending appointments can only transition to Confirmed, Rejected, or Cancelled.");
+      return;
+    }
+
+    if (currentStatus === "CONFIRMED" && !["COMPLETED", "CANCELLED"].includes(newStatus)) {
+      toast.error("Confirmed appointments can only transition to Completed or Cancelled.");
+      return;
+    }
+
     // Protect completed appointments with prescriptions.
     if (isAppointmentFinalized(appointment)) {
       toast.error(
@@ -273,29 +319,35 @@ function AdminAppointments() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Change appointment #${appointment.appointmentId} status to ${formatStatus(newStatus)}?`
-    );
-
-    if (!confirmed) return;
+    let cancellationReason = null;
+    if (newStatus === "CANCELLED" || newStatus === "REJECTED") {
+      const reasonInput = window.prompt(
+        `Please provide a reason for setting status to ${formatStatus(newStatus)}:`
+      );
+      if (reasonInput === null) return;
+      cancellationReason = reasonInput.trim() || `Administrative ${formatStatus(newStatus)}`;
+    } else {
+      const confirmed = window.confirm(
+        `Change appointment #${appointment.appointmentId} status to ${formatStatus(newStatus)}?`
+      );
+      if (!confirmed) return;
+    }
 
     setUpdatingId(appointment.appointmentId);
 
     try {
       await api.patch(
         `/appointments/${appointment.appointmentId}/status`,
-        null,
         {
-          params: { status: newStatus },
+          status: newStatus,
+          cancellationReason,
         }
       );
 
       toast.success("Appointment status updated.");
-
       await fetchAppointments(false);
     } catch (error) {
       console.error("Status update error:", error);
-
       toast.error(
         error.response?.data?.message ||
           "Unable to update appointment status."
@@ -354,6 +406,70 @@ function AdminAppointments() {
       }
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // Approve Reschedule (Admin)
+  const handleApproveReschedule = async (appointment) => {
+    try {
+      setUpdatingId(appointment.appointmentId);
+      const res = await api.patch(
+        `/appointments/${appointment.appointmentId}/reschedule-approve`
+      );
+      toast.success("Reschedule request approved! Slot updated.");
+      setAppointments((prev) =>
+        prev.map((item) =>
+          Number(item.appointmentId) === Number(appointment.appointmentId)
+            ? {
+                ...item,
+                appointmentDate: res.data.appointmentDate,
+                appointmentTime: res.data.appointmentTime,
+                queueNumber: res.data.queueNumber,
+                rescheduleStatus: "APPROVED",
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error("Approve reschedule failed:", err);
+      toast.error(
+        err.response?.data?.message || "Failed to approve reschedule request."
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // Reject Reschedule (Admin)
+  const handleRejectReschedule = async (appointment) => {
+    const reasonInput = window.prompt(
+      "Reason for declining reschedule request (optional):"
+    );
+    if (reasonInput === null) return;
+
+    try {
+      setUpdatingId(appointment.appointmentId);
+      await api.patch(
+        `/appointments/${appointment.appointmentId}/reschedule-reject`,
+        { reason: reasonInput.trim() }
+      );
+      toast.success(
+        "Reschedule request declined. Original appointment slot preserved."
+      );
+      setAppointments((prev) =>
+        prev.map((item) =>
+          Number(item.appointmentId) === Number(appointment.appointmentId)
+            ? { ...item, rescheduleStatus: "REJECTED" }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error("Reject reschedule failed:", err);
+      toast.error(
+        err.response?.data?.message || "Failed to decline reschedule request."
+      );
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -557,7 +673,12 @@ function AdminAppointments() {
                       className="transition hover:bg-slate-50"
                     >
                       <td className="px-5 py-4 text-sm font-bold text-cyan-700">
-                        #{appointment.appointmentId}
+                        <div>#{appointment.appointmentId}</div>
+                        {normalizedStatus === "CONFIRMED" && appointment.queueNumber && (
+                          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-extrabold text-cyan-800">
+                            Queue #{appointment.queueNumber}
+                          </span>
+                        )}
                       </td>
 
                       <td className="px-5 py-4 text-sm font-semibold text-slate-800">
@@ -569,25 +690,59 @@ function AdminAppointments() {
                       </td>
 
                       <td className="px-5 py-4 text-sm text-slate-600">
-                        <p>
+                        <p className="font-semibold text-slate-800">
                           {formatDate(appointment.appointmentDate)}
                         </p>
 
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-0.5 text-xs text-slate-500">
                           {formatTime(appointment.appointmentTime)}
                         </p>
+
+                        {appointment.rescheduleStatus === "PENDING_APPROVAL" && (
+                          <div className="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 shadow-sm">
+                            <div className="flex items-center gap-1 font-bold text-amber-800">
+                              <RotateCcw size={12} className="animate-spin" />
+                              <span>Reschedule Requested</span>
+                            </div>
+                            <p className="mt-1 font-semibold text-slate-800">
+                              To: {formatDate(appointment.rescheduleRequestedDate)} at {formatTime(appointment.rescheduleRequestedTime)}
+                            </p>
+                            {appointment.rescheduleReason && (
+                              <p className="mt-0.5 text-[11px] text-amber-700 italic">
+                                "{appointment.rescheduleReason}"
+                              </p>
+                            )}
+                            <div className="mt-2 flex items-center gap-2">
+                              <button
+                                type="button"
+                                disabled={updatingId === appointment.appointmentId}
+                                onClick={() => handleApproveReschedule(appointment)}
+                                className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                disabled={updatingId === appointment.appointmentId}
+                                onClick={() => handleRejectReschedule(appointment)}
+                                className="rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-[11px] font-bold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex flex-col items-start gap-1.5">
-                          <span
-                            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                              statusStyle[normalizedStatus] ||
-                              "bg-slate-100 text-slate-600"
-                            }`}
-                          >
-                            {formatStatus(normalizedStatus)}
-                          </span>
+                          <StatusBadge status={normalizedStatus} size="sm" />
+
+                          {normalizedStatus === "PENDING" && appointment.holdExpiresAt && (
+                            <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200">
+                              <Timer size={11} /> 15m Hold
+                            </span>
+                          )}
 
                           {finalized && (
                             <span className="flex items-center gap-1 text-[11px] font-semibold text-green-700">
@@ -609,6 +764,17 @@ function AdminAppointments() {
                             className="rounded-lg bg-cyan-50 p-2 text-cyan-700 transition hover:bg-cyan-100"
                           >
                             <Eye size={17} />
+                          </button>
+
+                          <button
+                            type="button"
+                            title="View Audit Trail"
+                            onClick={() =>
+                              openAuditModal(appointment)
+                            }
+                            className="rounded-lg bg-slate-100 p-2 text-slate-700 transition hover:bg-slate-200"
+                          >
+                            <History size={17} />
                           </button>
 
                           <button
@@ -637,37 +803,15 @@ function AdminAppointments() {
       </div>
 
       {/* APPOINTMENT DETAILS MODAL */}
-      {selectedAppointment && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setSelectedAppointment(null);
-            }
-          }}
-        >
-          <div className="my-auto w-full max-w-xl rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 p-5">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Appointment Details
-                </h2>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Appointment #{selectedAppointment.appointmentId}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedAppointment(null)}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-                aria-label="Close details"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
+      <AccessibleModal
+        isOpen={!!selectedAppointment}
+        onClose={() => setSelectedAppointment(null)}
+        title={selectedAppointment ? `Appointment Details #${selectedAppointment.appointmentId}` : "Appointment Details"}
+        description={selectedAppointment ? `Patient: ${selectedAppointment.patientName} · Doctor: ${selectedAppointment.doctorName}` : ""}
+        maxWidth="max-w-xl"
+      >
+        {selectedAppointment && (
+          <>
             <div className="space-y-5 p-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-xl bg-slate-50 p-4">
@@ -740,8 +884,33 @@ function AdminAppointments() {
                       selectedAppointment.appointmentTime
                     )}
                   </p>
+
+                  {selectedAppointment.queueNumber && (
+                    <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-bold text-cyan-800">
+                      Queue #{selectedAppointment.queueNumber}
+                    </span>
+                  )}
                 </div>
               </div>
+
+              {selectedAppointment.rescheduleStatus && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                    <RotateCcw size={14} />
+                    <span>Reschedule Request Status: {selectedAppointment.rescheduleStatus}</span>
+                  </div>
+                  {selectedAppointment.rescheduleRequestedDate && (
+                    <p className="mt-1 text-slate-700">
+                      Requested Slot: {formatDate(selectedAppointment.rescheduleRequestedDate)} at {formatTime(selectedAppointment.rescheduleRequestedTime)}
+                    </p>
+                  )}
+                  {selectedAppointment.rescheduleReason && (
+                    <p className="mt-0.5 text-amber-800 italic">
+                      "{selectedAppointment.rescheduleReason}"
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <p className="mb-2 text-sm font-semibold text-slate-700">
@@ -753,6 +922,17 @@ function AdminAppointments() {
                     "No reason provided."}
                 </div>
               </div>
+
+              {selectedAppointment.cancellationReason && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-red-800">
+                    Cancellation / Rejection Reason
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-red-900">
+                    {selectedAppointment.cancellationReason}
+                  </p>
+                </div>
+              )}
 
               {/* PRESCRIPTION INFORMATION */}
               {selectedAppointment.hasPrescription && (
@@ -832,7 +1012,19 @@ function AdminAppointments() {
               )}
             </div>
 
-            <div className="flex justify-end border-t border-slate-100 p-5">
+            <div className="flex items-center justify-between border-t border-slate-100 p-5">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = selectedAppointment;
+                  setSelectedAppointment(null);
+                  openAuditModal(target);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                <History size={15} />
+                View Audit Trail
+              </button>
               <button
                 type="button"
                 onClick={() => setSelectedAppointment(null)}
@@ -841,9 +1033,74 @@ function AdminAppointments() {
                 Close
               </button>
             </div>
+          </>
+        )}
+      </AccessibleModal>
+
+      {/* APPOINTMENT AUDIT TRAIL MODAL */}
+      <AccessibleModal
+        isOpen={auditModalOpen}
+        onClose={() => setAuditModalOpen(false)}
+        title="Appointment Audit Trail"
+        description={auditTarget ? `Immutable history for Appointment #${auditTarget.appointmentId} (${auditTarget.patientName} with ${auditTarget.doctorName})` : ""}
+        maxWidth="max-w-2xl"
+      >
+        <div>
+          {auditLoading ? (
+            <div className="py-12 text-center" role="status" aria-live="polite">
+              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-cyan-600 border-t-transparent" />
+              <p className="mt-3 text-xs text-slate-500">Loading audit trail...</p>
+            </div>
+          ) : auditLogs.length === 0 ? (
+            <div className="py-12 text-center text-slate-500 text-sm" role="status">
+              <History size={36} className="mx-auto text-slate-300 mb-2" />
+              No audit logs recorded for this appointment.
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              {auditLogs.map((log) => (
+                <div
+                  key={log.logId}
+                  className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 text-xs space-y-1.5"
+                >
+                  <div className="flex items-center justify-between font-bold text-slate-800">
+                    <span className="rounded bg-slate-200 px-2 py-0.5 text-[11px] font-mono uppercase tracking-wide">
+                      {log.action}
+                    </span>
+                    <span className="text-slate-400 font-normal">
+                      {new Date(log.createdAt).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-slate-700 leading-relaxed font-medium">
+                    {log.details}
+                  </p>
+                  <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-500 font-mono">
+                    <span>Actor: {log.performedBy} ({log.userRole})</span>
+                    {log.ipAddress && <span>IP: {log.ipAddress}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="border-t border-slate-100 pt-4 mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setAuditModalOpen(false)}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              Close
+            </button>
           </div>
         </div>
-      )}
+      </AccessibleModal>
     </div>
   );
 }

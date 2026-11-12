@@ -46,15 +46,16 @@ function Hero() {
           </div>
 
           <h1 className="text-balance text-4xl font-black leading-tight tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            Modern Healthcare,{" "}
+            Smarter Care,{" "}
             <span className="bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
-              Simplified & Connected.
+              Better Connections.
             </span>
           </h1>
 
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            Connect with verified medical specialists, book appointments without waiting,
-            and manage consultations, medical history, and digital prescriptions in one unified platform.
+            MediCare Plus is the modern Healthcare Administration Console. Connect with verified
+            medical specialists, manage appointments with real-time slot holds, and access comprehensive
+            electronic health records in one unified platform.
           </p>
 
           {/* CALL TO ACTION BUTTONS */}
@@ -124,10 +125,10 @@ function Hero() {
             <div className="flex items-center justify-between">
               <div>
                 <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-cyan-100 backdrop-blur-sm">
-                  MediCare V2.0
+                  MediCare Plus
                 </span>
                 <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
-                  Digital Healthcare Console
+                  The Healthcare Administration Console
                 </h2>
               </div>
               <div className="rounded-2xl bg-white/15 p-3 text-white backdrop-blur-sm">

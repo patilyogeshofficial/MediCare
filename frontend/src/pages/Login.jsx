@@ -84,7 +84,7 @@ function Login() {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-            <div className="w-full max-w-md">
+            <main id="main-content" tabIndex="-1" className="w-full max-w-md">
 
                 {/* LOGO */}
                 <div className="mb-8 text-center">
@@ -112,7 +112,7 @@ function Login() {
                         </h1>
 
                         <p className="mt-2 text-sm text-slate-500">
-                            Sign in to access your MediCare account.
+                            Sign in to access your MediCare Plus account.
                         </p>
                     </div>
 
@@ -251,7 +251,7 @@ function Login() {
                     </Link>
                 </div>
 
-            </div>
+            </main>
         </div>
     );
 }

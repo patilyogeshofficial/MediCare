@@ -22,13 +22,16 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     public UserService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            NotificationService notificationService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
     }
 
     // Get all users (Admin Only)
@@ -121,6 +124,36 @@ public class UserService {
 
         // Save updated user
         User updatedUser = userRepository.save(user);
+
+        // Notify if doctor status changed
+        if (user.getRole() == Role.DOCTOR) {
+            String statusLabel = Boolean.TRUE.equals(request.getIsActive()) ? "Activated" : "Deactivated";
+
+            // Notify admin
+            notificationService.createAdminActivityNotification(
+                    "Doctor Account " + statusLabel,
+                    "Dr. " + updatedUser.getFullName() + "'s account has been " + statusLabel.toLowerCase() + ".",
+                    "DOCTOR_STATUS_CHANGED",
+                    null,
+                    null,
+                    "ACCOUNT",
+                    "IMPORTANT",
+                    "/admin/doctors"
+            );
+
+            // Notify doctor
+            notificationService.createNotification(
+                    updatedUser.getUserId(),
+                    "Account Status Updated",
+                    "Your doctor account status has been updated to: " + statusLabel + ".",
+                    "DOCTOR_STATUS_CHANGED",
+                    null,
+                    null,
+                    "ACCOUNT",
+                    "IMPORTANT",
+                    "/doctor/dashboard"
+            );
+        }
 
         return convertToDTO(updatedUser);
     }

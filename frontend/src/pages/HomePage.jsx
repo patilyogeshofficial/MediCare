@@ -79,7 +79,7 @@ function HomePage() {
     <div className="min-h-screen bg-white text-slate-800">
       <Navbar />
 
-      <main>
+      <main id="main-content" tabIndex="-1">
         <Hero />
         <StatsCounter stats={stats} loading={statsLoading} />
         <About />

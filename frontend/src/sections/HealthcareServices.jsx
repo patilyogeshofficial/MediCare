@@ -22,7 +22,7 @@ function HealthcareServices() {
 
           <p className="mt-5 leading-7 text-slate-600">
             From preventive healthcare to specialized medical services,
-            MediCare supports your healthcare journey at every step.
+            MediCare Plus supports your healthcare journey at every step.
           </p>
         </div>
 
@@ -69,7 +69,7 @@ function HealthcareServices() {
 
           <p className="mx-auto mt-4 max-w-2xl leading-7 text-cyan-50">
             Explore our healthcare services and discover the care options
-            available through MediCare.
+            available through MediCare Plus.
           </p>
 
           <Link

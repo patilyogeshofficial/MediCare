@@ -1,6 +1,7 @@
 
 package com.medicare.backend.service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -13,16 +14,21 @@ import tools.jackson.databind.json.JsonMapper;
 
 import com.medicare.backend.dto.PrescriptionRequestDTO;
 import com.medicare.backend.dto.PrescriptionResponseDTO;
+import com.medicare.backend.dto.PublicPrescriptionVerificationDTO;
 import com.medicare.backend.entity.Appointment;
 import com.medicare.backend.entity.Doctor;
 import com.medicare.backend.entity.Patient;
 import com.medicare.backend.entity.Prescription;
+import com.medicare.backend.entity.Specialization;
 import com.medicare.backend.entity.User;
 import com.medicare.backend.repository.AppointmentRepository;
 import com.medicare.backend.repository.DoctorRepository;
 import com.medicare.backend.repository.PatientRepository;
 import com.medicare.backend.repository.PrescriptionRepository;
+import com.medicare.backend.repository.SpecializationRepository;
 import com.medicare.backend.repository.UserRepository;
+import com.medicare.backend.security.RateLimiterService;
+import com.medicare.backend.security.VerificationCodeGenerator;
 
 @Service
 public class PrescriptionService {
@@ -34,6 +40,10 @@ public class PrescriptionService {
     private final AppointmentRepository appointmentRepository;
     private final JsonMapper jsonMapper;
     private final DoctorRepository doctorRepository;
+    private final AuditLogService auditLogService;
+    private final VerificationCodeGenerator verificationCodeGenerator;
+    private final RateLimiterService rateLimiterService;
+    private final SpecializationRepository specializationRepository;
 
     public PrescriptionService(
             PrescriptionRepository prescriptionRepository,
@@ -42,7 +52,11 @@ public class PrescriptionService {
             UserRepository userRepository,
             JsonMapper jsonMapper,
             NotificationService notificationService,
-            DoctorRepository doctorRepository) {
+            DoctorRepository doctorRepository,
+            AuditLogService auditLogService,
+            VerificationCodeGenerator verificationCodeGenerator,
+            RateLimiterService rateLimiterService,
+            SpecializationRepository specializationRepository) {
 
         this.prescriptionRepository = prescriptionRepository;
         this.appointmentRepository = appointmentRepository;
@@ -51,6 +65,10 @@ public class PrescriptionService {
         this.jsonMapper = jsonMapper;
         this.notificationService = notificationService;
         this.doctorRepository = doctorRepository;
+        this.auditLogService = auditLogService;
+        this.verificationCodeGenerator = verificationCodeGenerator;
+        this.rateLimiterService = rateLimiterService;
+        this.specializationRepository = specializationRepository;
     }
 
     // Get all prescriptions - ADMIN
@@ -317,7 +335,7 @@ public class PrescriptionService {
         // 6. Validate medication JSON
         validateMedications(request.getMedications());
 
-        // 7. Create prescription
+        // 7. Create prescription with secure verification code
         Prescription prescription = new Prescription();
 
         prescription.setAppointmentId(request.getAppointmentId());
@@ -325,14 +343,31 @@ public class PrescriptionService {
         prescription.setMedications(request.getMedications());
         prescription.setInstructions(request.getInstructions());
 
+        String verificationCode = verificationCodeGenerator.generateCode();
+        while (prescriptionRepository.existsByVerificationCode(verificationCode)) {
+            verificationCode = verificationCodeGenerator.generateCode();
+        }
+        prescription.setVerificationCode(verificationCode);
+
         Prescription savedPrescription =
                 prescriptionRepository.saveAndFlush(prescription);
+
+        // Audit Logging
+        auditLogService.log(
+                "PRESCRIPTION",
+                savedPrescription.getPrescriptionId(),
+                "PRESCRIPTION_ISSUED",
+                user.getEmail(),
+                "DOCTOR",
+                "Issued prescription with Verification Code: " + verificationCode + " for Appointment #" + appointment.getAppointmentId(),
+                "127.0.0.1"
+        );
 
         // 8. Notify admins
         notificationService.createAdminActivityNotification(
                 "New Prescription Created",
                 "A new prescription has been created for appointment #"
-                        + savedPrescription.getAppointmentId() + ".",
+                        + savedPrescription.getAppointmentId() + " (Verification Code: " + verificationCode + ").",
                 "NEW_PRESCRIPTION",
                 savedPrescription.getAppointmentId(),
                 savedPrescription.getPrescriptionId()
@@ -358,7 +393,7 @@ public class PrescriptionService {
         return convertToDTO(savedPrescription);
     }
 
-    // Update prescription - ADMIN
+    // Update prescription - ADMIN (Audited and Tamper Protected)
     @Transactional
     public PrescriptionResponseDTO updatePrescription(
             Long prescriptionId,
@@ -377,21 +412,105 @@ public class PrescriptionService {
         validateAppointment(request.getAppointmentId());
         validateMedications(request.getMedications());
 
+        String previousDiagnosis = prescription.getDiagnosis();
         prescription.setDiagnosis(request.getDiagnosis());
         prescription.setMedications(request.getMedications());
         prescription.setInstructions(request.getInstructions());
 
-        return convertToDTO(
-                prescriptionRepository.save(prescription));
+        Prescription updated = prescriptionRepository.save(prescription);
+
+        auditLogService.log(
+                "PRESCRIPTION",
+                prescriptionId,
+                "PRESCRIPTION_MODIFIED",
+                "admin@medicare.com",
+                "ADMIN",
+                "Prescription modified by Admin. Verification Code remains: " + updated.getVerificationCode() + ". Previous diagnosis: " + previousDiagnosis,
+                "127.0.0.1"
+        );
+
+        return convertToDTO(updated);
     }
 
-    // Delete prescription - ADMIN
+    // Delete prescription - ADMIN (Audited)
     @Transactional
     public void deletePrescription(Long prescriptionId) {
 
         Prescription prescription = findPrescription(prescriptionId);
 
+        auditLogService.log(
+                "PRESCRIPTION",
+                prescriptionId,
+                "PRESCRIPTION_DELETED",
+                "admin@medicare.com",
+                "ADMIN",
+                "Prescription deleted by Admin. Was issued for Appointment #" + prescription.getAppointmentId() + " (Verification Code: " + prescription.getVerificationCode() + ")",
+                "127.0.0.1"
+        );
+
         prescriptionRepository.delete(prescription);
+    }
+
+    // Public Prescription Verification (Privacy-safe: Zero patient or clinical data returned)
+    public PublicPrescriptionVerificationDTO verifyPrescriptionPublic(String verificationCode, String clientIp) {
+        if (!rateLimiterService.tryAcquire(clientIp)) {
+            throw new ResponseStatusException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "Verification rate limit exceeded (maximum 10 requests per minute). Please wait before trying again."
+            );
+        }
+
+        if (verificationCode == null || verificationCode.trim().isEmpty()) {
+            return PublicPrescriptionVerificationDTO.invalid("", "Please enter a valid verification code.");
+        }
+
+        String normalizedCode = verificationCode.trim().toUpperCase();
+
+        Prescription prescription = prescriptionRepository.findByVerificationCode(normalizedCode).orElse(null);
+
+        if (prescription == null) {
+            auditLogService.log(
+                    "PRESCRIPTION",
+                    0L,
+                    "PUBLIC_VERIFICATION_ATTEMPT",
+                    "PUBLIC_PORTAL",
+                    "ANONYMOUS",
+                    "Verification failed: Code '" + normalizedCode + "' not found.",
+                    clientIp
+            );
+            return PublicPrescriptionVerificationDTO.invalid(normalizedCode, "No authentic prescription record found matching verification code: " + normalizedCode);
+        }
+
+        // Fetch non-sensitive doctor and department information
+        Appointment appointment = appointmentRepository.findById(prescription.getAppointmentId()).orElse(null);
+        Doctor doctor = appointment != null ? doctorRepository.findById(appointment.getDoctorId()).orElse(null) : null;
+        User doctorUser = doctor != null ? userRepository.findById(doctor.getUserId()).orElse(null) : null;
+        Specialization spec = doctor != null ? specializationRepository.findById(doctor.getSpecializationId()).orElse(null) : null;
+
+        String doctorName = doctorUser != null ? "Dr. " + doctorUser.getFullName() : "Authorized MediCare Specialist";
+        String license = doctor != null ? doctor.getLicenseNumber() : "Verified";
+        String specName = spec != null ? spec.getSpecializationName() : "General Medicine";
+        LocalDate issueDate = prescription.getPrescribedAt() != null
+                ? prescription.getPrescribedAt().toLocalDate()
+                : (appointment != null ? appointment.getAppointmentDate() : LocalDate.now());
+
+        auditLogService.log(
+                "PRESCRIPTION",
+                prescription.getPrescriptionId(),
+                "PUBLIC_VERIFICATION_SUCCESS",
+                "PUBLIC_PORTAL",
+                "ANONYMOUS",
+                "Prescription verified successfully for code " + normalizedCode,
+                clientIp
+        );
+
+        return PublicPrescriptionVerificationDTO.valid(
+                normalizedCode,
+                issueDate,
+                doctorName,
+                license,
+                specName
+        );
     }
 
     // Find prescription
@@ -444,6 +563,7 @@ public class PrescriptionService {
                 prescription.getDiagnosis(),
                 prescription.getMedications(),
                 prescription.getInstructions(),
+                prescription.getVerificationCode(),
                 prescription.getPrescribedAt());
     }
     // Check whether a prescription exists for the doctor's appointment

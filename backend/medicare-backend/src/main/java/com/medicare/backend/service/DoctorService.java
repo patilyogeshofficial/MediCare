@@ -26,15 +26,18 @@ public class DoctorService {
         private final DoctorRepository doctorRepository;
         private final UserRepository userRepository;
         private final SpecializationRepository specializationRepository;
+        private final NotificationService notificationService;
 
         public DoctorService(
                         DoctorRepository doctorRepository,
                         UserRepository userRepository,
-                        SpecializationRepository specializationRepository) {
+                        SpecializationRepository specializationRepository,
+                        NotificationService notificationService) {
 
                 this.doctorRepository = doctorRepository;
                 this.userRepository = userRepository;
                 this.specializationRepository = specializationRepository;
+                this.notificationService = notificationService;
         }
 
         // Get all doctors (defaults to active only)
@@ -166,6 +169,17 @@ public class DoctorService {
                 doctor.setConsultationFee(dto.getConsultationFee());
 
                 Doctor savedDoctor = doctorRepository.save(doctor);
+
+                notificationService.createAdminActivityNotification(
+                                "New Doctor Registered",
+                                "A new doctor profile has been created for Dr. " + user.getFullName() + " (License: " + savedDoctor.getLicenseNumber() + ").",
+                                "DOCTOR_STATUS_CHANGED",
+                                null,
+                                null,
+                                "ACCOUNT",
+                                "IMPORTANT",
+                                "/admin/doctors"
+                );
 
                 return convertToDTO(savedDoctor);
         }

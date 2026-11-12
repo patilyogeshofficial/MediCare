@@ -49,7 +49,7 @@ function Contact() {
           </span>
 
           <h2 className="mt-4 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">
-            Contact MediCare
+            Contact MediCare Plus
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-600">

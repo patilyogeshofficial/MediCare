@@ -34,6 +34,9 @@ public class Prescription {
     @Column(name = "instructions", columnDefinition = "TEXT")
     private String instructions;
 
+    @Column(name = "verification_code", unique = true, length = 64)
+    private String verificationCode;
+
     @Column(name = "prescribed_at", insertable = false, updatable = false)
     private OffsetDateTime prescribedAt;
 
@@ -45,6 +48,14 @@ public class Prescription {
 
     public void setPrescriptionId(Long prescriptionId) {
         this.prescriptionId = prescriptionId;
+    }
+
+    public String getVerificationCode() {
+        return verificationCode;
+    }
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
     }
 
     public Long getAppointmentId() {

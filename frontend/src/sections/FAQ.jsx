@@ -6,7 +6,7 @@ function FAQ() {
     {
       question: "How can I book an appointment?",
       answer:
-        "You can create an account on MediCare, explore available doctors and request an appointment by selecting your preferred doctor, date and time.",
+        "You can create an account on MediCare Plus, explore available doctors and request an appointment by selecting your preferred doctor, date and time.",
     },
     {
       question: "Can I choose my preferred doctor?",
@@ -19,9 +19,9 @@ function FAQ() {
         "Please bring your identification document, previous medical reports, prescription records and any relevant health information.",
     },
     {
-      question: "Does MediCare provide emergency services?",
+      question: "Does MediCare Plus provide emergency services?",
       answer:
-        "MediCare provides information about healthcare services, including emergency care. For a medical emergency, contact your local emergency services or visit the nearest emergency department.",
+        "MediCare Plus provides information about healthcare services, including emergency care. For a medical emergency, contact your local emergency services or visit the nearest emergency department.",
     },
     {
       question: "Can I cancel or reschedule an appointment?",
@@ -68,7 +68,7 @@ function FAQ() {
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-600">
-            Find answers to common questions about MediCare, appointments,
+            Find answers to common questions about MediCare Plus, appointments,
             healthcare services and patient support.
           </p>
         </div>

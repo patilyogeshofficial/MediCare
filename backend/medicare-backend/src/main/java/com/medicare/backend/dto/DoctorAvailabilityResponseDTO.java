@@ -11,6 +11,7 @@ public class DoctorAvailabilityResponseDTO {
     private LocalTime endTime;
     private LocalTime breakStart;
     private LocalTime breakEnd;
+    private Integer consultationDuration;
 
     public Long getAvailabilityId() {
         return availabilityId;
@@ -66,5 +67,13 @@ public class DoctorAvailabilityResponseDTO {
 
     public void setBreakEnd(LocalTime breakEnd) {
         this.breakEnd = breakEnd;
+    }
+
+    public Integer getConsultationDuration() {
+        return consultationDuration;
+    }
+
+    public void setConsultationDuration(Integer consultationDuration) {
+        this.consultationDuration = consultationDuration;
     }
 }

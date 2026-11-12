@@ -43,8 +43,8 @@ import {
 } from "lucide-react";
 
 import toast from "react-hot-toast";
-
 import api from "../services/api";
+import AccessibleModal from "../components/ui/AccessibleModal";
 
 // Format doctor name without duplicating Dr. prefix.
 
@@ -1333,56 +1333,15 @@ function AdminDoctors() {
       </div>
 
       {/* ADD / EDIT DOCTOR MODAL */}
-
-      {doctorFormOpen && (
-
-        <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4">
-
-          <div className="my-auto w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-
-            <div className="flex items-center justify-between border-b border-slate-100 p-5">
-
-              <div>
-
-                <h2 className="text-lg font-bold text-slate-900">
-
-                  {editingDoctor ? "Edit Doctor Account" : "Add New Doctor"}
-
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-
-                  {editingDoctor
-
-                    ? "Update login account and professional information."
-
-                    : "Create login credentials and a professional doctor profile."}
-
-                </p>
-
-              </div>
-
-              <button
-
-                type="button"
-
-                onClick={() => !savingDoctor && setDoctorFormOpen(false)}
-
-                disabled={savingDoctor}
-
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
-
-                aria-label="Close doctor form"
-
-              >
-
-                <X size={20} />
-
-              </button>
-
-            </div>
-
-            <form onSubmit={handleDoctorFormSubmit}>
+      <AccessibleModal
+        isOpen={doctorFormOpen}
+        onClose={() => !savingDoctor && setDoctorFormOpen(false)}
+        title={editingDoctor ? "Edit Doctor Account" : "Add New Doctor"}
+        description={editingDoctor ? "Update login account and professional information." : "Create login credentials and a professional doctor profile."}
+        maxWidth="max-w-2xl"
+        showCloseButton={!savingDoctor}
+      >
+        <form onSubmit={handleDoctorFormSubmit}>
 
               <div className="grid max-h-[70vh] gap-4 overflow-y-auto p-5 sm:grid-cols-2">
 
@@ -1498,74 +1457,19 @@ function AdminDoctors() {
               </div>
 
             </form>
-
-          </div>
-
-        </div>
-
-      )}
+      </AccessibleModal>
 
       {/* DOCTOR DETAILS MODAL */}
-
-      {selectedDoctor && (
-
-        <div
-
-          className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4"
-
-          onMouseDown={(event) => {
-
-            if (event.target === event.currentTarget) {
-
-              setSelectedDoctor(null);
-
-            }
-
-          }}
-
-        >
-
-          <div className="my-auto w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
-
-            {/* MODAL HEADER */}
-
-            <div className="flex items-center justify-between border-b border-slate-100 p-5">
-
-              <div>
-
-                <h2 className="text-lg font-bold text-slate-900">
-
-                  Doctor Profile
-
-                </h2>
-
-                <p className="mt-1 text-xs text-slate-500">
-
-                  Doctor ID: #{selectedDoctor.doctorId}
-
-                </p>
-
-              </div>
-
-              <button
-
-                type="button"
-
-                onClick={() => setSelectedDoctor(null)}
-
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-
-                aria-label="Close details"
-
-              >
-
-                <X size={20} />
-
-              </button>
-
-            </div>
-
-            <div className="max-h-[75vh] space-y-6 overflow-y-auto p-5">
+      <AccessibleModal
+        isOpen={!!selectedDoctor}
+        onClose={() => setSelectedDoctor(null)}
+        title={selectedDoctor ? displayDoctorName(selectedDoctor.fullName) : "Doctor Profile"}
+        description={selectedDoctor ? `Doctor ID: #${selectedDoctor.doctorId} · ${selectedDoctor.specializationName || "General"}` : ""}
+        maxWidth="max-w-3xl"
+      >
+        {selectedDoctor && (
+          <div>
+            <div className="max-h-[75vh] space-y-6 overflow-y-auto pr-1">
 
               {/* DOCTOR BASIC DETAILS */}
 
@@ -1976,30 +1880,18 @@ function AdminDoctors() {
             </div>
 
             {/* MODAL FOOTER */}
-
-            <div className="flex justify-end border-t border-slate-100 p-5">
-
+            <div className="flex justify-end border-t border-slate-100 pt-4 mt-6">
               <button
-
                 type="button"
-
                 onClick={() => setSelectedDoctor(null)}
-
                 className="rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-700"
-
               >
-
                 Close
-
               </button>
-
             </div>
-
           </div>
-
-        </div>
-
-      )}
+        )}
+      </AccessibleModal>
 
     </div>
 

@@ -51,7 +51,7 @@ function HealthcareServiceDetails() {
     <>
       <Navbar />
 
-      <main className="min-h-screen bg-slate-50">
+      <main id="main-content" tabIndex="-1" className="min-h-screen bg-slate-50">
 
         {/* HERO SECTION */}
         <section className="bg-gradient-to-r from-cyan-700 to-blue-700 px-6 py-20 text-white lg:py-28">
@@ -70,7 +70,7 @@ function HealthcareServiceDetails() {
             </div>
 
             <p className="mt-8 font-bold uppercase tracking-widest text-cyan-100">
-              MediCare Healthcare Services
+              MediCare Plus Healthcare Services
             </p>
 
             <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl">
@@ -156,7 +156,7 @@ function HealthcareServiceDetails() {
             </h2>
 
             <p className="mx-auto mt-4 max-w-2xl leading-7 text-cyan-50">
-              Discover more healthcare services offered by MediCare
+              Discover more healthcare services offered by MediCare Plus
               and find the support that suits your healthcare needs.
             </p>
 

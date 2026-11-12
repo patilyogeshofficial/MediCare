@@ -51,7 +51,7 @@ function StatsCounter({ stats, loading }) {
           </div>
 
           <p className="text-xs text-slate-500">
-            Real-time figures from MediCare Hospital Administration Database
+            Real-time figures from MediCare Plus Hospital Administration Database
           </p>
         </div>
 

@@ -48,7 +48,7 @@ function ForgotPassword() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
 
-            <div className="w-full max-w-md">
+            <main id="main-content" tabIndex="-1" className="w-full max-w-md">
 
                 {/* LOGO */}
                 <div className="mb-8 text-center">
@@ -172,7 +172,7 @@ function ForgotPassword() {
 
                 </div>
 
-            </div>
+            </main>
 
         </div>
     );

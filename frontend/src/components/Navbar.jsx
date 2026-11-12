@@ -211,7 +211,7 @@ function Navbar() {
         <a
           href="#home"
           onClick={(event) => handleNavigation(event, "#home")}
-          aria-label="MediCare - Home"
+          aria-label="MediCare Plus - Home"
           className="flex items-center gap-3 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-600"
         >
           <div className="rounded-xl bg-cyan-600 p-3 text-white">
@@ -220,11 +220,12 @@ function Navbar() {
 
           <div>
             <span className="block text-2xl font-extrabold text-slate-900">
-              Medi<span className="text-cyan-600">Care</span>
+              Medi<span className="text-cyan-600">Care</span>{" "}
+              <span className="text-teal-600 font-black">Plus</span>
             </span>
 
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              Healthcare Administration Console
+              Smarter Care. Better Connections.
             </p>
           </div>
         </a>
