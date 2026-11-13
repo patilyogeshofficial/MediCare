@@ -66,7 +66,8 @@ CREATE TABLE IF NOT EXISTS public.doctor_availability (
     consultation_duration INT DEFAULT 30,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_availability_doctor FOREIGN KEY (doctor_id) REFERENCES public.doctors(doctor_id) ON DELETE CASCADE
+    CONSTRAINT fk_availability_doctor FOREIGN KEY (doctor_id) REFERENCES public.doctors(doctor_id) ON DELETE CASCADE,
+    CONSTRAINT unique_doctor_day UNIQUE (doctor_id, day_of_week)
 );
 
 -- Appointments Table
@@ -75,14 +76,14 @@ CREATE TABLE IF NOT EXISTS public.appointments (
     patient_id BIGINT NOT NULL,
     doctor_id BIGINT NOT NULL,
     appointment_date DATE NOT NULL,
-    appointment_time TIME NOT NULL,
+    appointment_time TIME WITHOUT TIME ZONE NOT NULL,
     reason TEXT,
     status VARCHAR(20) DEFAULT 'PENDING' NOT NULL CHECK (status IN ('HOLD', 'PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED', 'COMPLETED')),
     hold_expires_at TIMESTAMPTZ,
     queue_number INT,
     cancellation_reason TEXT,
     reschedule_requested_date DATE,
-    reschedule_requested_time TIME,
+    reschedule_requested_time TIME WITHOUT TIME ZONE,
     reschedule_reason TEXT,
     reschedule_status VARCHAR(20),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -139,11 +140,12 @@ CREATE TABLE IF NOT EXISTS public.contact_messages (
 -- Admin Notification Preferences Table
 CREATE TABLE IF NOT EXISTS public.admin_notification_preferences (
     preference_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id BIGINT NOT NULL UNIQUE,
+    user_id BIGINT NOT NULL,
     all_notifications BOOLEAN DEFAULT TRUE NOT NULL,
     appointment_notifications BOOLEAN DEFAULT TRUE NOT NULL,
     contact_message_notifications BOOLEAN DEFAULT TRUE NOT NULL,
     prescription_notifications BOOLEAN DEFAULT TRUE NOT NULL,
+    CONSTRAINT uk_admin_notification_user UNIQUE (user_id),
     CONSTRAINT fk_admin_pref_user FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE
 );
 
@@ -293,11 +295,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_update_appointment_timestamp ON public.appointments;
-CREATE TRIGGER trg_update_appointment_timestamp
-BEFORE UPDATE ON public.appointments
-FOR EACH ROW
-EXECUTE FUNCTION update_appointment_timestamp();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'trg_update_appointment_timestamp'
+    ) THEN
+        CREATE TRIGGER trg_update_appointment_timestamp
+        BEFORE UPDATE ON public.appointments
+        FOR EACH ROW
+        EXECUTE FUNCTION update_appointment_timestamp();
+    END IF;
+END $$;
 
 -- ----------------------------------------------------------------------------
 -- 4. CONCURRENCY & DEDUPLICATION UNIQUE CONSTRAINTS

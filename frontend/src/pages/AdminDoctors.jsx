@@ -721,43 +721,49 @@ function AdminDoctors() {
         }
 
         // Existing backend creates the login account first, then its doctor profile.
-
-        const userResponse = await api.post("/users/doctors", {
-
-          fullName: doctorForm.fullName.trim(),
-
-          email: doctorForm.email.trim(),
-
-          password: doctorForm.password,
-
-        });
-
-        const userId = userResponse.data?.userId;
+        let userId = null;
+        try {
+          const userResponse = await api.post("/users/doctors", {
+            fullName: doctorForm.fullName.trim(),
+            email: doctorForm.email.trim(),
+            password: doctorForm.password,
+          });
+          userId = userResponse.data?.userId;
+        } catch (userError) {
+          // If the account already exists (409 Conflict), check if it's an existing DOCTOR user who lacks a profile
+          if (userError.response?.status === 409) {
+            const usersResponse = await api.get("/users");
+            const existingUser = (usersResponse.data || []).find(
+              (u) =>
+                u.email?.toLowerCase() === doctorForm.email.trim().toLowerCase() &&
+                u.role === "DOCTOR"
+            );
+            if (existingUser) {
+              userId = existingUser.userId;
+            } else {
+              throw userError;
+            }
+          } else {
+            throw userError;
+          }
+        }
 
         if (!userId) {
-
           throw new Error("Doctor login account was created but the response did not include userId.");
-
         }
 
         try {
-
           await api.post("/doctors", {
-
             userId,
-
             ...profilePayload,
-
           });
-
         } catch (profileError) {
-
           console.error("Doctor profile creation failed after account creation:", profileError);
-
-          toast.error(`Login account created (User ID ${userId}), but doctor profile creation failed. Please retry profile creation or remove the unused account.`);
-
+          toast.error(
+            profileError.response?.data?.message ||
+              `Login account exists (User ID ${userId}), but doctor profile creation failed. Please check the profile details.`
+          );
           return;
-
         }
 
         toast.success("Doctor account created successfully.");

@@ -92,6 +92,13 @@ export default function AccessibleModal({
   const titleId = customTitleId || `modal-title-${generatedId}`;
   const descriptionId = customDescriptionId || `modal-desc-${generatedId}`;
 
+  // Keep latest callbacks/refs in mutable refs to avoid re-triggering modal lifecycle on parent state changes
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const initialFocusRefRef = useRef(initialFocusRef);
+  initialFocusRefRef.current = initialFocusRef;
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -104,7 +111,7 @@ export default function AccessibleModal({
       modalRef,
       backdropRef,
       triggerElement: previousActiveElement.current,
-      onClose,
+      onClose: () => onCloseRef.current?.(),
     };
     activeModalStack.push(modalEntry);
 
@@ -113,8 +120,9 @@ export default function AccessibleModal({
 
     // 4. Focus initial element: custom ref, first focusable element, or dialog container
     const focusTimer = setTimeout(() => {
-      if (initialFocusRef && initialFocusRef.current) {
-        initialFocusRef.current.focus();
+      const customFocusEl = initialFocusRefRef.current?.current;
+      if (customFocusEl && typeof customFocusEl.focus === "function") {
+        customFocusEl.focus();
         return;
       }
 
@@ -146,7 +154,7 @@ export default function AccessibleModal({
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        onCloseRef.current?.();
         return;
       }
 
@@ -231,7 +239,7 @@ export default function AccessibleModal({
         }
       }, 40);
     };
-  }, [isOpen, onClose, generatedId, initialFocusRef]);
+  }, [isOpen, generatedId]);
 
   if (!isOpen) return null;
 
