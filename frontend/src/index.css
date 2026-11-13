@@ -135,6 +135,17 @@ textarea:focus-visible,
     padding: 0 !important;
   }
 
+  /* Completely collapse the background application (#root) so it takes 0 pages */
+  #root,
+  body > *:not(:has(.print-receipt-modal)):not([role="presentation"]) {
+    display: none !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
   body * {
     visibility: hidden;
   }
