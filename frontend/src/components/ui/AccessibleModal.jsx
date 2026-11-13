@@ -118,14 +118,27 @@ export default function AccessibleModal({
     // 3. Synchronize background isolation and body scroll locking
     syncModalStackIsolation();
 
-    // 4. Focus initial element: custom ref, first focusable element, or dialog container
+    // 4. Focus initial element: custom ref, first input/textarea, or first focusable element
     const focusTimer = setTimeout(() => {
+      // 4a. Prioritize explicit custom focus ref if provided
       const customFocusEl = initialFocusRefRef.current?.current;
       if (customFocusEl && typeof customFocusEl.focus === "function") {
         customFocusEl.focus();
         return;
       }
 
+      // 4b. Prioritize first form input/textarea/select so the user can immediately type without focus jumping to buttons
+      const firstFormInput = modalRef.current?.querySelector(
+        'input:not([disabled]):not([type="hidden"]):not([aria-hidden="true"]), ' +
+        'textarea:not([disabled]):not([aria-hidden="true"]), ' +
+        'select:not([disabled]):not([aria-hidden="true"])'
+      );
+      if (firstFormInput && typeof firstFormInput.focus === "function") {
+        firstFormInput.focus();
+        return;
+      }
+
+      // 4c. Fallback to any focusable element (e.g. action buttons in confirmation dialogs)
       const focusable = modalRef.current?.querySelectorAll(
         'button:not([disabled]):not([aria-hidden="true"]), ' +
         '[href]:not([aria-hidden="true"]), ' +
