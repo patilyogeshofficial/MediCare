@@ -1598,7 +1598,7 @@ function DoctorAppointments({ isDeactivated = false }) {
         maxWidth="max-w-2xl"
       >
         {prescriptionModalAppointment && (
-          <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1 print-receipt-modal">
             <div className="flex justify-end no-print">
               {viewingPrescription && (
                 <button
