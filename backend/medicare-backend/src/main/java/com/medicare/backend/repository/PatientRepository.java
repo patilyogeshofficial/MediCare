@@ -44,7 +44,7 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
                    "END AS age_cohort, " +
                    "COUNT(*) " +
                    "FROM patients p " +
-                   "GROUP BY age_cohort", nativeQuery = true)
+                   "GROUP BY 1", nativeQuery = true)
     List<Object[]> countPatientsByAgeCohortGrouped();
 
     // Paginated patient list with registration date range filter

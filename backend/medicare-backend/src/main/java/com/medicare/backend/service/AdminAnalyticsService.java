@@ -146,22 +146,68 @@ public class AdminAnalyticsService {
         LocalDate endDate = dates[1];
 
         // 1. Overview Statistics
-        AdminAnalyticsOverviewDTO overview = buildOverviewStats(startDate, endDate);
+        AdminAnalyticsOverviewDTO overview;
+        try {
+            overview = buildOverviewStats(startDate, endDate);
+        } catch (Exception e) {
+            logger.error("Failed to build overview stats:", e);
+            overview = new AdminAnalyticsOverviewDTO(
+                    patientRepository.count(),
+                    doctorRepository.count(),
+                    doctorRepository.countActiveDoctors(),
+                    0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L,
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    false, NOTICE_REVENUE_UNAVAILABLE
+            );
+        }
 
         // 2. Appointment Status Breakdown
-        List<StatusDistributionDTO> statusBreakdown = buildStatusBreakdown(startDate, endDate, overview.getTotalAppointments());
+        List<StatusDistributionDTO> statusBreakdown;
+        try {
+            statusBreakdown = buildStatusBreakdown(startDate, endDate, overview.getTotalAppointments());
+        } catch (Exception e) {
+            logger.error("Failed to build status breakdown:", e);
+            statusBreakdown = List.of();
+        }
 
         // 3. Appointment Trends
-        List<TrendDataPointDTO> appointmentTrends = buildAppointmentTrends(startDate, endDate);
+        List<TrendDataPointDTO> appointmentTrends;
+        try {
+            appointmentTrends = buildAppointmentTrends(startDate, endDate);
+        } catch (Exception e) {
+            logger.error("Failed to build appointment trends:", e);
+            appointmentTrends = List.of();
+        }
 
         // 4. Doctor Workloads
-        List<DoctorWorkloadDTO> doctorWorkloads = buildDoctorWorkloads(startDate, endDate);
+        List<DoctorWorkloadDTO> doctorWorkloads;
+        try {
+            doctorWorkloads = buildDoctorWorkloads(startDate, endDate);
+        } catch (Exception e) {
+            logger.error("Failed to build doctor workloads:", e);
+            doctorWorkloads = List.of();
+        }
 
         // 5. Specialization Analytics
-        List<SpecializationAnalyticsDTO> specializationAnalytics = buildSpecializationAnalytics(startDate, endDate, overview.getTotalAppointments());
+        List<SpecializationAnalyticsDTO> specializationAnalytics;
+        try {
+            specializationAnalytics = buildSpecializationAnalytics(startDate, endDate, overview.getTotalAppointments());
+        } catch (Exception e) {
+            logger.error("Failed to build specialization analytics:", e);
+            specializationAnalytics = List.of();
+        }
 
         // 6. Patient Analytics (Database-level demographic aggregations)
-        PatientAnalyticsDTO patientAnalytics = buildPatientAnalytics(startDate, endDate);
+        PatientAnalyticsDTO patientAnalytics;
+        try {
+            patientAnalytics = buildPatientAnalytics(startDate, endDate);
+        } catch (Exception e) {
+            logger.error("Failed to build patient analytics:", e);
+            patientAnalytics = new PatientAnalyticsDTO(
+                    patientRepository.count(),
+                    List.of(), List.of(), List.of(), List.of()
+            );
+        }
 
         return new AdminAnalyticsDashboardResponseDTO(
                 overview,
@@ -193,7 +239,8 @@ public class AdminAnalyticsService {
 
         BigDecimal estimatedConsultationValue = appointmentRepository.sumBookedConsultationFeeByDateRange(startDate, endDate);
         BigDecimal completedConsultationsValue = appointmentRepository.sumCompletedConsultationFeeByDateRange(startDate, endDate);
-        BigDecimal averageDoctorFee = doctorRepository.getAverageConsultationFee();
+        Double avgFee = doctorRepository.getAverageConsultationFee();
+        BigDecimal averageDoctorFee = (avgFee != null) ? BigDecimal.valueOf(avgFee) : BigDecimal.ZERO;
 
         if (estimatedConsultationValue == null) estimatedConsultationValue = BigDecimal.ZERO;
         if (completedConsultationsValue == null) completedConsultationsValue = BigDecimal.ZERO;
@@ -250,10 +297,22 @@ public class AdminAnalyticsService {
         Map<LocalDate, long[]> dateMap = new HashMap<>();
 
         for (Object[] row : rows) {
-            LocalDate date = (LocalDate) row[0];
+            Object rawDate = row[0];
             Number total = (Number) row[1];
             Number completed = (Number) row[2];
             Number cancelled = (Number) row[3];
+
+            LocalDate date = null;
+            if (rawDate instanceof LocalDate ld) {
+                date = ld;
+            } else if (rawDate instanceof java.sql.Date sd) {
+                date = sd.toLocalDate();
+            } else if (rawDate != null) {
+                try {
+                    date = LocalDate.parse(rawDate.toString().substring(0, 10));
+                } catch (Exception ignored) {
+                }
+            }
 
             if (date != null) {
                 dateMap.put(date, new long[]{
@@ -317,7 +376,7 @@ public class AdminAnalyticsService {
         List<Object[]> rawDoctorStats = appointmentRepository.getDoctorAppointmentStats(startDate, endDate);
         Map<Long, long[]> statsMap = new HashMap<>();
         for (Object[] r : rawDoctorStats) {
-            Long docId = (Long) r[0];
+            Long docId = (r[0] instanceof Number n) ? n.longValue() : Long.valueOf(r[0].toString());
             Number total = (Number) r[1];
             Number completed = (Number) r[2];
             Number cancelled = (Number) r[3];
@@ -385,7 +444,7 @@ public class AdminAnalyticsService {
         List<Object[]> rawApptStats = appointmentRepository.getSpecializationAppointmentStats(startDate, endDate);
         Map<Long, long[]> apptStatsMap = new HashMap<>();
         for (Object[] r : rawApptStats) {
-            Long sid = (Long) r[0];
+            Long sid = (r[0] instanceof Number n) ? n.longValue() : Long.valueOf(r[0].toString());
             Number total = (Number) r[1];
             Number completed = (Number) r[2];
             apptStatsMap.put(sid, new long[]{
@@ -433,10 +492,20 @@ public class AdminAnalyticsService {
         List<Object[]> regRows = userRepository.getPatientRegistrationsByDateRange(startDate, endDate);
         List<TrendDataPointDTO> regTrends = new ArrayList<>();
         for (Object[] row : regRows) {
-            java.sql.Date d = (java.sql.Date) row[0];
+            Object rawDate = row[0];
             Number count = (Number) row[1];
-            if (d != null && count != null) {
-                LocalDate lDate = d.toLocalDate();
+            LocalDate lDate = null;
+            if (rawDate instanceof LocalDate ld) {
+                lDate = ld;
+            } else if (rawDate instanceof java.sql.Date sd) {
+                lDate = sd.toLocalDate();
+            } else if (rawDate != null) {
+                try {
+                    lDate = LocalDate.parse(rawDate.toString().substring(0, 10));
+                } catch (Exception ignored) {
+                }
+            }
+            if (lDate != null && count != null) {
                 regTrends.add(new TrendDataPointDTO(
                         lDate.format(DATE_FORMATTER),
                         lDate.format(LABEL_FORMATTER),

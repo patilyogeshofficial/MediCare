@@ -200,7 +200,7 @@ public interface AppointmentRepository
     );
 
     // Sum estimated consultation value for COMPLETED consultations within date range
-    @Query("SELECT COALESCE(SUM(d.consultationFee), 0) FROM Appointment a, Doctor d " +
+    @Query("SELECT SUM(d.consultationFee) FROM Appointment a, Doctor d " +
            "WHERE a.doctorId = d.doctorId AND a.status = 'COMPLETED' " +
            "AND a.appointmentDate BETWEEN :startDate AND :endDate")
     BigDecimal sumCompletedConsultationFeeByDateRange(
@@ -209,7 +209,7 @@ public interface AppointmentRepository
     );
 
     // Sum estimated consultation value for BOOKED/CONFIRMED/COMPLETED consultations within date range
-    @Query("SELECT COALESCE(SUM(d.consultationFee), 0) FROM Appointment a, Doctor d " +
+    @Query("SELECT SUM(d.consultationFee) FROM Appointment a, Doctor d " +
            "WHERE a.doctorId = d.doctorId AND a.status IN ('CONFIRMED', 'COMPLETED') " +
            "AND a.appointmentDate BETWEEN :startDate AND :endDate")
     BigDecimal sumBookedConsultationFeeByDateRange(

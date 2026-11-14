@@ -29,8 +29,8 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     // =========================================================================
 
     // Average consultation fee across all doctors
-    @Query("SELECT COALESCE(AVG(d.consultationFee), 0) FROM Doctor d")
-    BigDecimal getAverageConsultationFee();
+    @Query("SELECT AVG(d.consultationFee) FROM Doctor d")
+    Double getAverageConsultationFee();
 
     // Doctor count grouped by specialization ID
     @Query("SELECT d.specializationId, COUNT(d) FROM Doctor d GROUP BY d.specializationId")
