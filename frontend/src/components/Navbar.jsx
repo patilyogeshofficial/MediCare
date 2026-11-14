@@ -15,6 +15,7 @@ const navLinks = [
   { name: "About", href: "#about" },
   { name: "Specialities", href: "#services" },
   { name: "Find a Doctor", href: "#doctors" },
+  { name: "Verify Prescription", href: "/verify-prescription", isRoute: true },
   { name: "Contact", href: "#contact" },
 ];
 
@@ -190,12 +191,14 @@ function Navbar() {
   }, [location.pathname]);
 
   // Desktop navigation link styling
-  const getLinkClasses = (href) => {
-    const isActive = activeSection === href.substring(1);
+  const getLinkClasses = (link) => {
+    const isActive = link.isRoute
+      ? location.pathname === link.href
+      : location.pathname === "/" && activeSection === link.href.substring(1);
 
     return `relative rounded-sm text-sm font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-600 ${
       isActive
-        ? "text-cyan-700"
+        ? "text-cyan-700 font-bold"
         : "text-slate-600 hover:text-cyan-600"
     }`;
   };
@@ -235,30 +238,48 @@ function Navbar() {
           aria-label="Main navigation"
           className="hidden items-center gap-8 lg:flex"
         >
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={(event) =>
-                handleNavigation(event, link.href)
-              }
-              aria-current={
-                activeSection === link.href.substring(1)
-                  ? "location"
-                  : undefined
-              }
-              className={getLinkClasses(link.href)}
-            >
-              {link.name}
+          {navLinks.map((link) =>
+            link.isRoute ? (
+              <Link
+                key={link.name}
+                to={link.href}
+                onClick={() => setMenuOpen(false)}
+                className={getLinkClasses(link)}
+                aria-current={location.pathname === link.href ? "page" : undefined}
+              >
+                {link.name}
+                {location.pathname === link.href && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-2 left-0 h-0.5 w-full rounded-full bg-cyan-600"
+                  />
+                )}
+              </Link>
+            ) : (
+              <a
+                key={link.name}
+                href={link.href}
+                onClick={(event) =>
+                  handleNavigation(event, link.href)
+                }
+                aria-current={
+                  location.pathname === "/" && activeSection === link.href.substring(1)
+                    ? "location"
+                    : undefined
+                }
+                className={getLinkClasses(link)}
+              >
+                {link.name}
 
-              {activeSection === link.href.substring(1) && (
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-2 left-0 h-0.5 w-full rounded-full bg-cyan-600"
-                />
-              )}
-            </a>
-          ))}
+                {location.pathname === "/" && activeSection === link.href.substring(1) && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-2 left-0 h-0.5 w-full rounded-full bg-cyan-600"
+                  />
+                )}
+              </a>
+            )
+          )}
         </nav>
 
         {/* DESKTOP BUTTONS */}
@@ -332,27 +353,43 @@ function Navbar() {
           aria-label="Mobile navigation"
           className="flex flex-col gap-4 border-t border-slate-100 bg-white p-6 lg:hidden"
         >
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={(event) =>
-                handleNavigation(event, link.href)
-              }
-              aria-current={
-                activeSection === link.href.substring(1)
-                  ? "location"
-                  : undefined
-              }
-              className={`rounded-lg px-3 py-2 font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 ${
-                activeSection === link.href.substring(1)
-                  ? "bg-cyan-50 text-cyan-700"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-cyan-600"
-              }`}
-            >
-              {link.name}
-            </a>
-          ))}
+          {navLinks.map((link) =>
+            link.isRoute ? (
+              <Link
+                key={link.name}
+                to={link.href}
+                onClick={() => setMenuOpen(false)}
+                className={`rounded-lg px-3 py-2 font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 ${
+                  location.pathname === link.href
+                    ? "bg-cyan-50 text-cyan-700 font-bold"
+                    : "text-slate-700 hover:bg-slate-50 hover:text-cyan-600"
+                }`}
+                aria-current={location.pathname === link.href ? "page" : undefined}
+              >
+                {link.name}
+              </Link>
+            ) : (
+              <a
+                key={link.name}
+                href={link.href}
+                onClick={(event) =>
+                  handleNavigation(event, link.href)
+                }
+                aria-current={
+                  location.pathname === "/" && activeSection === link.href.substring(1)
+                    ? "location"
+                    : undefined
+                }
+                className={`rounded-lg px-3 py-2 font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 ${
+                  location.pathname === "/" && activeSection === link.href.substring(1)
+                    ? "bg-cyan-50 text-cyan-700"
+                    : "text-slate-700 hover:bg-slate-50 hover:text-cyan-600"
+                }`}
+              >
+                {link.name}
+              </a>
+            )
+          )}
 
           {/* MOBILE AUTHENTICATION BUTTONS */}
           {isAuthenticated ? (

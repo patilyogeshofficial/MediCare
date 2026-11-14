@@ -5,9 +5,6 @@ import {
   Stethoscope,
   ShieldCheck,
   Clock,
-  PhoneCall,
-  MapPin,
-  CheckCircle2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -77,45 +74,6 @@ function Hero() {
               <Stethoscope size={18} className="text-cyan-600" aria-hidden="true" />
               Meet Specialists
             </a>
-          </div>
-
-          {/* REAL CONTACT BADGE */}
-          <div className="mt-10 flex flex-wrap items-center gap-6 border-t border-slate-200/80 pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
-                <PhoneCall size={18} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Hospital Desk
-                </p>
-                <a
-                  href="tel:+918010729955"
-                  className="text-sm font-extrabold text-slate-900 transition hover:text-cyan-600"
-                >
-                  +91 8010729955
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-                <MapPin size={18} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Campus Location
-                </p>
-                <p className="text-sm font-semibold text-slate-800">
-                  Deccan, Pune, India
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
-              <CheckCircle2 size={16} className="text-emerald-600" aria-hidden="true" />
-              24/7 Emergency Support
-            </div>
           </div>
         </div>
 

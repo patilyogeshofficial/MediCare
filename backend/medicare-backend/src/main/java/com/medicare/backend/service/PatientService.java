@@ -162,6 +162,12 @@ public class PatientService {
 
                 User user = getAuthenticatedPatient(authenticatedEmail);
 
+                if (!Boolean.TRUE.equals(user.getIsActive())) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.FORBIDDEN,
+                                        "Your account has been deactivated by hospital administration.");
+                }
+
                 Patient patient = patientRepository.findByUserId(user.getUserId())
                                 .orElseThrow(() -> new ResponseStatusException(
                                                 HttpStatus.NOT_FOUND,
@@ -213,7 +219,8 @@ public class PatientService {
                                 patient.getGender(),
                                 patient.getPhone(),
                                 patient.getAddress(),
-                                patient.getBloodGroup());
+                                patient.getBloodGroup(),
+                                user.getIsActive());
         }
 
         // Delete patient

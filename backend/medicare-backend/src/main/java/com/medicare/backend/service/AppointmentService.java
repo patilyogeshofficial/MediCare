@@ -454,6 +454,12 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found"));
 
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Your patient account has been deactivated by hospital administration. Appointment booking is disabled.");
+        }
+
         Patient patient = patientRepository.findByUserId(user.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Patient profile not found"));
@@ -881,6 +887,12 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found"));
 
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Your patient account has been deactivated by hospital administration. Appointment cancellation is disabled.");
+        }
+
         Patient patient = patientRepository.findByUserId(user.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Patient profile not found"));
@@ -1000,6 +1012,12 @@ public class AppointmentService {
                 authenticatedEmail.trim().toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found"));
+
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Your patient account has been deactivated by hospital administration. Appointment rescheduling is disabled.");
+        }
 
         Patient patient = patientRepository.findByUserId(user.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(

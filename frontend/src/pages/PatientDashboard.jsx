@@ -56,11 +56,40 @@ const navigation = [
 ];
 
 function PatientDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState("Dashboard");
+
+  const [patientProfile, setPatientProfile] = useState(null);
+
+  // Sync patient account status on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchProfileStatus = async () => {
+      try {
+        const response = await api.get("/patients/my-profile");
+        if (isMounted && response.data) {
+          setPatientProfile(response.data);
+          if (response.data.isActive !== undefined && updateUser) {
+            updateUser({ isActive: response.data.isActive });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load patient status:", err);
+      }
+    };
+    fetchProfileStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const isDeactivated = Boolean(
+    (patientProfile && patientProfile.isActive === false) ||
+    (user && user.isActive === false)
+  );
 
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -182,6 +211,10 @@ function PatientDashboard() {
   };
 
   const openRescheduleModal = (appointment) => {
+    if (isDeactivated) {
+      toast.error("Your patient account has been deactivated by hospital administration. Action not allowed.");
+      return;
+    }
     setRescheduleTarget(appointment);
     setRescheduleDate(appointment.appointmentDate);
     setRescheduleTime("");
@@ -192,6 +225,10 @@ function PatientDashboard() {
 
   const handleRescheduleSubmit = async (e) => {
     e.preventDefault();
+    if (isDeactivated) {
+      toast.error("Your patient account has been deactivated by hospital administration. Action not allowed.");
+      return;
+    }
     if (!rescheduleTime) {
       toast.error("Please choose a new consultation slot");
       return;
@@ -985,6 +1022,11 @@ function PatientDashboard() {
 
   // Cancel patient's own appointment
   const handleCancelAppointment = async (appointmentId) => {
+    if (isDeactivated) {
+      toast.error("Your patient account has been deactivated by hospital administration. Action not allowed.");
+      return;
+    }
+
     const reason = window.prompt("Please state the reason for cancelling your appointment:");
     if (reason === null) {
       return;
@@ -1027,6 +1069,11 @@ function PatientDashboard() {
   // Update patient profile
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    if (isDeactivated) {
+      toast.error("Your patient account has been deactivated by hospital administration. Action not allowed.");
+      return;
+    }
 
     try {
       setProfileSaving(true);
@@ -1637,9 +1684,16 @@ function PatientDashboard() {
             {/* PATIENT PROFILE */}
             <div className="flex items-center gap-3 border-l border-slate-100 pl-4">
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-bold text-slate-800">
-                  {user?.fullName || "Patient"}
-                </p>
+                <div className="flex items-center justify-end gap-1.5">
+                  <p className="text-sm font-bold text-slate-800">
+                    {user?.fullName || "Patient"}
+                  </p>
+                  {isDeactivated && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                      Inactive
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500">Patient</p>
               </div>
               <button
@@ -1660,6 +1714,29 @@ function PatientDashboard() {
 
         {/* PAGE CONTENT */}
         <div className="p-5 sm:p-8">
+          {/* DEACTIVATED ACCOUNT ALERT BANNER */}
+          {isDeactivated && (
+            <div className="mb-6 rounded-2xl border-2 border-red-200 bg-red-50 p-5 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="rounded-xl bg-red-100 p-2.5 text-red-600 shrink-0 mt-0.5">
+                  <ShieldAlert size={24} aria-hidden="true" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-bold text-red-900">
+                      Your Patient Account Has Been Deactivated by the Administrator
+                    </h3>
+                    <span className="rounded-full bg-red-200 px-2.5 py-0.5 text-xs font-bold text-red-800">
+                      Account Inactive
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm leading-relaxed text-red-700">
+                    Your account has been deactivated by hospital administration. While your account is inactive, you can view your consultation history, electronic health records, and prescription receipts in read-only mode, but you cannot book new appointments, cancel existing appointments, or modify your profile. Please contact hospital administration for assistance.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           {/* ===================================== */}
           {/* DASHBOARD */}
           {/* ===================================== */}
@@ -2014,11 +2091,17 @@ function PatientDashboard() {
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   <button
-                    onClick={() => navigate("/patient/appointments/book")}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-5 py-4 font-semibold text-white transition hover:bg-cyan-700"
+                    disabled={isDeactivated}
+                    onClick={() => !isDeactivated && navigate("/patient/appointments/book")}
+                    className={`flex items-center justify-center gap-2 rounded-xl px-5 py-4 font-semibold transition ${
+                      isDeactivated
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                        : "bg-cyan-600 text-white hover:bg-cyan-700"
+                    }`}
+                    title={isDeactivated ? "Account is deactivated by administrator" : "Book Appointment"}
                   >
                     <CalendarDays size={20} />
-                    Book Appointment
+                    {isDeactivated ? "Booking Disabled (Inactive)" : "Book Appointment"}
                   </button>
 
                   <button
@@ -2058,11 +2141,17 @@ function PatientDashboard() {
                 </div>
 
                 <button
-                  onClick={() => navigate("/patient/appointments/book")}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                  disabled={isDeactivated}
+                  onClick={() => !isDeactivated && navigate("/patient/appointments/book")}
+                  className={`flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition ${
+                    isDeactivated
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      : "bg-cyan-600 text-white hover:bg-cyan-700"
+                  }`}
+                  title={isDeactivated ? "Account is deactivated by administrator" : "Book Appointment"}
                 >
                   <CalendarDays size={18} />
-                  Book Appointment
+                  {isDeactivated ? "Booking Disabled" : "Book Appointment"}
                 </button>
               </div>
 
@@ -2126,12 +2215,14 @@ function PatientDashboard() {
                       You haven't booked any appointments yet.
                     </p>
 
-                    <button
-                      onClick={() => navigate("/patient/appointments/book")}
-                      className="mt-5 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white hover:bg-cyan-700"
-                    >
-                      Book Your First Appointment
-                    </button>
+                    {!isDeactivated && (
+                      <button
+                        onClick={() => navigate("/patient/appointments/book")}
+                        className="mt-5 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white hover:bg-cyan-700"
+                      >
+                        Book Your First Appointment
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -2247,32 +2338,38 @@ function PatientDashboard() {
                                 {["PENDING", "CONFIRMED"].includes(
                                   appointment.status
                                 ) ? (
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    {appointment.rescheduleStatus !== "PENDING_APPROVAL" && (
+                                  isDeactivated ? (
+                                    <span className="text-xs font-semibold text-slate-400 italic">
+                                      Actions locked (Inactive)
+                                    </span>
+                                  ) : (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      {appointment.rescheduleStatus !== "PENDING_APPROVAL" && (
+                                        <button
+                                          onClick={() => openRescheduleModal(appointment)}
+                                          className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100"
+                                        >
+                                          <RotateCcw size={12} />
+                                          <span>Reschedule</span>
+                                        </button>
+                                      )}
                                       <button
-                                        onClick={() => openRescheduleModal(appointment)}
-                                        className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100"
+                                        onClick={() =>
+                                          handleCancelAppointment(
+                                            appointment.appointmentId
+                                          )
+                                        }
+                                        disabled={
+                                          cancellingId === appointment.appointmentId
+                                        }
+                                        className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                                       >
-                                        <RotateCcw size={12} />
-                                        <span>Reschedule</span>
+                                        {cancellingId === appointment.appointmentId
+                                          ? "Cancelling..."
+                                          : "Cancel"}
                                       </button>
-                                    )}
-                                    <button
-                                      onClick={() =>
-                                        handleCancelAppointment(
-                                          appointment.appointmentId
-                                        )
-                                      }
-                                      disabled={
-                                        cancellingId === appointment.appointmentId
-                                      }
-                                      className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                      {cancellingId === appointment.appointmentId
-                                        ? "Cancelling..."
-                                        : "Cancel"}
-                                    </button>
-                                  </div>
+                                    </div>
+                                  )
                                 ) : appointment.status === "COMPLETED" ? (
                                   prescriptionMap.has(
                                     Number(appointment.appointmentId)
@@ -2474,7 +2571,9 @@ function PatientDashboard() {
 
                             {/* BOOK APPOINTMENT */}
                             <button
+                              disabled={isDeactivated}
                               onClick={() =>
+                                !isDeactivated &&
                                 navigate("/patient/appointments/book", {
                                   state: {
                                     doctorId: doctor.doctorId,
@@ -2482,9 +2581,14 @@ function PatientDashboard() {
                                   },
                                 })
                               }
-                              className="w-full rounded-xl bg-cyan-600 py-3 text-sm font-bold text-white transition hover:bg-cyan-700"
+                              className={`w-full rounded-xl py-3 text-sm font-bold transition ${
+                                isDeactivated
+                                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                                  : "bg-cyan-600 text-white hover:bg-cyan-700"
+                              }`}
+                              title={isDeactivated ? "Account is deactivated by administrator" : "Book Appointment"}
                             >
-                              Book Appointment
+                              {isDeactivated ? "Booking Disabled (Inactive)" : "Book Appointment"}
                             </button>
                           </div>
                         </div>
@@ -3883,10 +3987,16 @@ function PatientDashboard() {
 
                 {!isEditingProfile && profile && (
                   <button
-                    onClick={() => setIsEditingProfile(true)}
-                    className="px-5 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition font-medium"
+                    disabled={isDeactivated}
+                    onClick={() => !isDeactivated && setIsEditingProfile(true)}
+                    className={`px-5 py-2.5 rounded-xl transition font-medium ${
+                      isDeactivated
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                        : "bg-cyan-600 text-white hover:bg-cyan-700"
+                    }`}
+                    title={isDeactivated ? "Account is deactivated by administrator" : "Edit Profile"}
                   >
-                    Edit Profile
+                    {isDeactivated ? "Profile Editing Disabled" : "Edit Profile"}
                   </button>
                 )}
               </div>

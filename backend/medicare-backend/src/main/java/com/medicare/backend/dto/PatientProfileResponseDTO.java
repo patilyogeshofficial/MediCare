@@ -12,6 +12,7 @@ public class PatientProfileResponseDTO {
     private String phone;
     private String address;
     private String bloodGroup;
+    private Boolean isActive;
 
     public PatientProfileResponseDTO() {
     }
@@ -26,6 +27,20 @@ public class PatientProfileResponseDTO {
             String address,
             String bloodGroup) {
 
+        this(patientId, fullName, email, dateOfBirth, gender, phone, address, bloodGroup, true);
+    }
+
+    public PatientProfileResponseDTO(
+            Long patientId,
+            String fullName,
+            String email,
+            LocalDate dateOfBirth,
+            String gender,
+            String phone,
+            String address,
+            String bloodGroup,
+            Boolean isActive) {
+
         this.patientId = patientId;
         this.fullName = fullName;
         this.email = email;
@@ -34,6 +49,7 @@ public class PatientProfileResponseDTO {
         this.phone = phone;
         this.address = address;
         this.bloodGroup = bloodGroup;
+        this.isActive = isActive;
     }
 
     public Long getPatientId() {
@@ -66,5 +82,13 @@ public class PatientProfileResponseDTO {
 
     public String getBloodGroup() {
         return bloodGroup;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 }

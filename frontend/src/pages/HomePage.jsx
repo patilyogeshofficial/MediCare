@@ -11,6 +11,7 @@ import StatsCounter from "../sections/StatsCounter";
 import About from "../sections/About";
 import Specialities from "../sections/Specialities";
 import Doctors from "../sections/Doctors";
+import VerifyPrescriptionSection from "../sections/VerifyPrescriptionSection";
 import HealthcareServices from "../sections/HealthcareServices";
 import WhyChooseUs from "../sections/WhyChooseUs";
 import MedicalTeam from "../sections/MedicalTeam";
@@ -85,6 +86,7 @@ function HomePage() {
         <About />
         <Specialities />
         <Doctors />
+        <VerifyPrescriptionSection />
         <HealthcareServices />
         <WhyChooseUs />
         <MedicalTeam />

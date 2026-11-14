@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import {
   ArrowLeft,
   CalendarDays,
@@ -55,8 +56,11 @@ function formatTime12(timeStr) {
 }
 
 function AppointmentBooking() {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const isDeactivated = Boolean(user && user.isActive === false);
 
   // Doctors list
   const [doctors, setDoctors] = useState([]);
@@ -224,6 +228,11 @@ function AppointmentBooking() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (isDeactivated) {
+      toast.error("Your patient account has been deactivated by hospital administration. Booking is disabled.");
+      return;
+    }
+
     if (!selectedDoctorId) {
       toast.error("Please choose a doctor.");
       return;
@@ -287,7 +296,8 @@ function AppointmentBooking() {
               <HeartPulse size={25} />
             </div>
             <span className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Medi<span className="text-cyan-600">Care</span>
+              Medi<span className="text-cyan-600">Care</span>{" "}
+              <span className="text-teal-600 font-black">Plus</span>
             </span>
           </Link>
 
@@ -315,6 +325,30 @@ function AppointmentBooking() {
             Choose your doctor, select a live consultation slot, and receive a guaranteed 15-minute pending reservation hold.
           </p>
         </div>
+
+        {/* DEACTIVATED ACCOUNT ALERT */}
+        {isDeactivated && (
+          <div className="mb-8 rounded-2xl border-2 border-red-200 bg-red-50 p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="rounded-xl bg-red-100 p-2.5 text-red-600 shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-bold text-red-900">
+                    Account Deactivated by Administrator
+                  </h2>
+                  <span className="rounded-full bg-red-200 px-2.5 py-0.5 text-xs font-bold text-red-800">
+                    Booking Disabled
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-red-700 leading-relaxed">
+                  Your patient account has been marked inactive by hospital administration. While your account is inactive, you can view existing appointments and medical records on your dashboard, but you cannot reserve consultation slots or book new appointments.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* BOOKING SUCCESS CARD */}
         {bookingSuccessData ? (
@@ -869,10 +903,14 @@ function AppointmentBooking() {
               {/* SUBMIT BUTTON */}
               <button
                 type="submit"
-                disabled={submitting || !selectedDoctorId || !selectedSlotTime || !reason.trim()}
-                className="w-full rounded-xl bg-cyan-600 px-5 py-4 text-base font-extrabold text-white shadow-sm transition hover:bg-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={submitting || isDeactivated || !selectedDoctorId || !selectedSlotTime || !reason.trim()}
+                className={`w-full rounded-xl px-5 py-4 text-base font-extrabold shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isDeactivated
+                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                    : "bg-cyan-600 text-white hover:bg-cyan-700 focus-visible:outline-cyan-600"
+                }`}
               >
-                {submitting ? "Reserving Slot..." : "Confirm & Reserve Slot"}
+                {isDeactivated ? "Account Deactivated — Booking Disabled" : submitting ? "Reserving Slot..." : "Confirm & Reserve Slot"}
               </button>
             </form>
           </div>

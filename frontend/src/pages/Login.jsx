@@ -94,7 +94,8 @@ function Login() {
                         </div>
 
                         <span className="text-3xl font-extrabold text-slate-900">
-                            Medi<span className="text-cyan-600">Care</span>
+                            Medi<span className="text-cyan-600">Care</span>{" "}
+                            <span className="text-teal-600 font-black">Plus</span>
                         </span>
                     </Link>
 

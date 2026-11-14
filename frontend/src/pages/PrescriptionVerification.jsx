@@ -103,7 +103,8 @@ function PrescriptionVerification() {
               <HeartPulse size={22} />
             </div>
             <span className="text-xl font-black text-slate-900 tracking-tight">
-              Medi<span className="text-cyan-600">Care</span>
+              Medi<span className="text-cyan-600">Care</span>{" "}
+              <span className="text-teal-600 font-black">Plus</span>
             </span>
           </Link>
 
