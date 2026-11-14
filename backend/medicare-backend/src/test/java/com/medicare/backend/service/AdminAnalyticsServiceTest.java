@@ -78,6 +78,28 @@ class AdminAnalyticsServiceTest {
     }
 
     @Test
+    @DisplayName("resolveDateRange: ALL_TIME defaults to comprehensive date bounds")
+    void testResolveDateRange_AllTime() {
+        LocalDate today = LocalDate.now();
+        LocalDate[] range = analyticsService.resolveDateRange("ALL_TIME", null, null);
+
+        assertEquals(2, range.length);
+        assertEquals(LocalDate.of(2020, 1, 1), range[0]);
+        assertEquals(today.plusYears(1), range[1]);
+    }
+
+    @Test
+    @DisplayName("resolveDateRange: null filter defaults to ALL_TIME")
+    void testResolveDateRange_NullDefaultsToAllTime() {
+        LocalDate today = LocalDate.now();
+        LocalDate[] range = analyticsService.resolveDateRange(null, null, null);
+
+        assertEquals(2, range.length);
+        assertEquals(LocalDate.of(2020, 1, 1), range[0]);
+        assertEquals(today.plusYears(1), range[1]);
+    }
+
+    @Test
     @DisplayName("resolveDateRange: CUSTOM with valid dates uses provided bounds")
     void testResolveDateRange_CustomValid() {
         LocalDate start = LocalDate.of(2026, 1, 1);

@@ -91,7 +91,7 @@ public class AdminAnalyticsService {
      */
     public LocalDate[] resolveDateRange(String filterType, LocalDate customStartDate, LocalDate customEndDate) {
         LocalDate today = LocalDate.now();
-        String normalizedFilter = (filterType != null) ? filterType.trim().toUpperCase(Locale.ROOT) : "LAST_30_DAYS";
+        String normalizedFilter = (filterType != null) ? filterType.trim().toUpperCase(Locale.ROOT) : "ALL_TIME";
 
         LocalDate startDate;
         LocalDate endDate = today;
@@ -99,12 +99,15 @@ public class AdminAnalyticsService {
         switch (normalizedFilter) {
             case "TODAY":
                 startDate = today;
+                endDate = today;
                 break;
             case "LAST_7_DAYS":
                 startDate = today.minusDays(6);
+                endDate = today;
                 break;
             case "LAST_30_DAYS":
                 startDate = today.minusDays(29);
+                endDate = today;
                 break;
             case "THIS_MONTH":
                 startDate = today.withDayOfMonth(1);
@@ -125,7 +128,8 @@ public class AdminAnalyticsService {
                 endDate = customEndDate;
                 break;
             default:
-                startDate = today.minusDays(29);
+                startDate = LocalDate.of(2020, 1, 1);
+                endDate = today.plusYears(1);
                 break;
         }
 
@@ -216,7 +220,7 @@ public class AdminAnalyticsService {
                 doctorWorkloads,
                 specializationAnalytics,
                 patientAnalytics,
-                (filterType != null ? filterType.toUpperCase(Locale.ROOT) : "LAST_30_DAYS"),
+                (filterType != null ? filterType.toUpperCase(Locale.ROOT) : "ALL_TIME"),
                 startDate.format(DATE_FORMATTER),
                 endDate.format(DATE_FORMATTER)
         );

@@ -28,11 +28,11 @@ import toast from "react-hot-toast";
 import api from "../services/api";
 
 const FILTER_PRESETS = [
-  { id: "TODAY", label: "Today" },
-  { id: "LAST_7_DAYS", label: "Last 7 Days" },
-  { id: "LAST_30_DAYS", label: "Last 30 Days" },
-  { id: "THIS_MONTH", label: "This Month" },
   { id: "ALL_TIME", label: "All Time" },
+  { id: "THIS_MONTH", label: "This Month" },
+  { id: "LAST_30_DAYS", label: "Last 30 Days" },
+  { id: "LAST_7_DAYS", label: "Last 7 Days" },
+  { id: "TODAY", label: "Today" },
   { id: "CUSTOM", label: "Custom Range" },
 ];
 
@@ -45,7 +45,7 @@ const STATUS_COLORS = {
 };
 
 export default function AdminAnalytics() {
-  const [selectedFilter, setSelectedFilter] = useState("LAST_30_DAYS");
+  const [selectedFilter, setSelectedFilter] = useState("ALL_TIME");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
 

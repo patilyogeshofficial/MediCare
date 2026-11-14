@@ -41,7 +41,7 @@ public class AdminAnalyticsController {
      */
     @GetMapping("/dashboard")
     public ResponseEntity<AdminAnalyticsDashboardResponseDTO> getDashboardAnalytics(
-            @RequestParam(required = false, defaultValue = "LAST_30_DAYS") String filter,
+            @RequestParam(required = false, defaultValue = "ALL_TIME") String filter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
@@ -58,7 +58,7 @@ public class AdminAnalyticsController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "appointmentDate") String sortBy,
             @RequestParam(defaultValue = "desc") String direction,
-            @RequestParam(required = false, defaultValue = "LAST_30_DAYS") String filter,
+            @RequestParam(required = false, defaultValue = "ALL_TIME") String filter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
@@ -106,7 +106,7 @@ public class AdminAnalyticsController {
      */
     @GetMapping("/reports/doctors")
     public ResponseEntity<List<DoctorReportItemDTO>> getDoctorReport(
-            @RequestParam(required = false, defaultValue = "LAST_30_DAYS") String filter,
+            @RequestParam(required = false, defaultValue = "ALL_TIME") String filter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
@@ -119,7 +119,7 @@ public class AdminAnalyticsController {
      */
     @GetMapping("/reports/specializations")
     public ResponseEntity<List<SpecializationReportItemDTO>> getSpecializationReport(
-            @RequestParam(required = false, defaultValue = "LAST_30_DAYS") String filter,
+            @RequestParam(required = false, defaultValue = "ALL_TIME") String filter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
@@ -133,7 +133,7 @@ public class AdminAnalyticsController {
      */
     @GetMapping(value = "/export/appointments", produces = "text/csv")
     public ResponseEntity<byte[]> exportAppointmentsCsv(
-            @RequestParam(required = false, defaultValue = "LAST_30_DAYS") String filter,
+            @RequestParam(required = false, defaultValue = "ALL_TIME") String filter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
@@ -170,7 +170,7 @@ public class AdminAnalyticsController {
      */
     @GetMapping(value = "/export/doctors", produces = "text/csv")
     public ResponseEntity<byte[]> exportDoctorsCsv(
-            @RequestParam(required = false, defaultValue = "LAST_30_DAYS") String filter,
+            @RequestParam(required = false, defaultValue = "ALL_TIME") String filter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
@@ -188,7 +188,7 @@ public class AdminAnalyticsController {
      */
     @GetMapping(value = "/export/specializations", produces = "text/csv")
     public ResponseEntity<byte[]> exportSpecializationsCsv(
-            @RequestParam(required = false, defaultValue = "LAST_30_DAYS") String filter,
+            @RequestParam(required = false, defaultValue = "ALL_TIME") String filter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
