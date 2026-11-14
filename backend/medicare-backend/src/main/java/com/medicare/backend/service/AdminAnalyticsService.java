@@ -226,6 +226,17 @@ public class AdminAnalyticsService {
         );
     }
 
+    private String formatDoctorName(User u, Long doctorId) {
+        if (u == null || u.getFullName() == null || u.getFullName().isBlank()) {
+            return "Doctor #" + doctorId;
+        }
+        String name = u.getFullName().trim();
+        if (name.toLowerCase(Locale.ROOT).startsWith("dr.") || name.toLowerCase(Locale.ROOT).startsWith("dr ")) {
+            return name;
+        }
+        return "Dr. " + name;
+    }
+
     private AdminAnalyticsOverviewDTO buildOverviewStats(LocalDate startDate, LocalDate endDate) {
         long totalPatients = patientRepository.count();
         long totalDoctors = doctorRepository.count();
@@ -394,7 +405,7 @@ public class AdminAnalyticsService {
         List<DoctorWorkloadDTO> list = new ArrayList<>();
         for (Doctor d : doctors) {
             User u = userMap.get(d.getUserId());
-            String doctorName = (u != null && u.getFullName() != null) ? "Dr. " + u.getFullName() : "Doctor #" + d.getDoctorId();
+            String doctorName = formatDoctorName(u, d.getDoctorId());
             boolean isActive = (u != null && Boolean.TRUE.equals(u.getIsActive()));
             String specName = specMap.getOrDefault(d.getSpecializationId(), "General Medicine");
 
@@ -457,6 +468,27 @@ public class AdminAnalyticsService {
             });
         }
 
+        List<Object[]> rawDoctorStats = appointmentRepository.getDoctorAppointmentStats(startDate, endDate);
+        Map<Long, Long> docCompletedMap = new HashMap<>();
+        for (Object[] r : rawDoctorStats) {
+            Long docId = (r[0] instanceof Number n) ? n.longValue() : Long.valueOf(r[0].toString());
+            Number comp = (Number) r[2];
+            if (docId != null && comp != null) {
+                docCompletedMap.put(docId, comp.longValue());
+            }
+        }
+
+        Map<Long, BigDecimal> specValueMap = new HashMap<>();
+        for (Doctor d : doctors) {
+            Long sid = d.getSpecializationId();
+            if (sid != null) {
+                long completed = docCompletedMap.getOrDefault(d.getDoctorId(), 0L);
+                BigDecimal fee = (d.getConsultationFee() != null) ? d.getConsultationFee() : BigDecimal.ZERO;
+                BigDecimal val = fee.multiply(BigDecimal.valueOf(completed));
+                specValueMap.put(sid, specValueMap.getOrDefault(sid, BigDecimal.ZERO).add(val));
+            }
+        }
+
         List<SpecializationAnalyticsDTO> list = new ArrayList<>();
         for (Specialization s : specializations) {
             Long sid = s.getSpecializationId();
@@ -469,6 +501,8 @@ public class AdminAnalyticsService {
                     ? BigDecimal.valueOf((apptCount * 100.0) / totalAppointments).setScale(1, RoundingMode.HALF_UP).doubleValue()
                     : 0.0;
 
+            BigDecimal estimatedValue = specValueMap.getOrDefault(sid, BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+
             list.add(new SpecializationAnalyticsDTO(
                     sid,
                     s.getSpecializationName(),
@@ -476,7 +510,7 @@ public class AdminAnalyticsService {
                     apptCount,
                     completedCount,
                     sharePercentage,
-                    BigDecimal.ZERO
+                    estimatedValue
             ));
         }
 
@@ -633,7 +667,7 @@ public class AdminAnalyticsService {
         for (Long did : doctorIds) {
             doctorRepository.findById(did).ifPresent(d -> {
                 User u = userRepository.findById(d.getUserId()).orElse(null);
-                String docName = (u != null) ? "Dr. " + u.getFullName() : "Doctor #" + did;
+                String docName = formatDoctorName(u, did);
                 String specName = specializationRepository.findById(d.getSpecializationId())
                         .map(Specialization::getSpecializationName).orElse("General Medicine");
                 doctorDetails.put(did, new String[]{docName, specName});
@@ -777,7 +811,7 @@ public class AdminAnalyticsService {
         List<DoctorReportItemDTO> items = new ArrayList<>();
         for (Doctor d : doctors) {
             User u = userMap.get(d.getUserId());
-            String docName = (u != null) ? "Dr. " + u.getFullName() : "Doctor #" + d.getDoctorId();
+            String docName = formatDoctorName(u, d.getDoctorId());
             String spec = specMap.getOrDefault(d.getSpecializationId(), "General Medicine");
             long[] st = statsMap.getOrDefault(d.getDoctorId(), new long[]{0L, 0L, 0L});
 
@@ -911,7 +945,7 @@ public class AdminAnalyticsService {
 
         for (Doctor d : doctorRepository.findAll()) {
             User u = userRepository.findById(d.getUserId()).orElse(null);
-            String docName = (u != null) ? "Dr. " + u.getFullName() : "Doctor #" + d.getDoctorId();
+            String docName = formatDoctorName(u, d.getDoctorId());
             String specName = specNames.getOrDefault(d.getSpecializationId(), "General Medicine");
             doctorDetails.put(d.getDoctorId(), new String[]{docName, specName});
         }
