@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Project-Under_Development-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/Project-Implementation_Completed-blue?style=flat-square" />
   <img src="https://img.shields.io/badge/Architecture-Full_Stack-success?style=flat-square" />
   <img src="https://img.shields.io/badge/Authentication-JWT-black?style=flat-square" />
 </p>
@@ -26,15 +26,15 @@
 
 ## 📌 About MediCare
 
-MediCare is a modern, full-stack healthcare platform designed to simplify hospital operations and create seamless interactions between administrators, doctors, and patients.
+MediCare is a modern, full-stack healthcare platform designed to simplify healthcare administration and create seamless interactions between administrators, doctors, and patients.
 
-The project is being migrated from an existing PHP-based application to a modern Java Full Stack architecture powered by React.js, Spring Boot, and PostgreSQL.
+The project is built using a modern Java Full Stack architecture powered by React.js, Spring Boot, and PostgreSQL.
 
-MediCare brings essential healthcare operations together through dedicated portals, secure authentication, appointment workflows, patient records, doctor services, and activity notifications.
+MediCare brings essential healthcare operations together through dedicated portals, secure authentication, appointment workflows, patient records, doctor services, prescription services, and activity notifications.
 
 ### 🎯 Our Vision
 
-To create a connected digital healthcare environment that makes everyday hospital operations simpler, more accessible, and more efficient.
+To create a connected digital healthcare environment that makes everyday healthcare operations simpler, more accessible, and more efficient.
 
 ---
 
@@ -42,7 +42,7 @@ To create a connected digital healthcare environment that makes everyday hospita
 
 ### 👨‍💼 Admin Portal
 
-- Admin Dashboard with hospital activity summaries
+- Admin Dashboard with healthcare activity summaries
 - Patient Records and Patient Directory
 - Doctor Directory
 - Appointment Coordination
@@ -51,6 +51,7 @@ To create a connected digital healthcare environment that makes everyday hospita
 - Notification Preferences
 - Admin Profile Settings
 - Password and Security Settings
+- Analytics and Reports
 
 ### 👨‍⚕️ Doctor Portal
 
@@ -95,6 +96,7 @@ To create a connected digital healthcare environment that makes everyday hospita
 | JavaScript | Application Logic |
 | Tailwind CSS | Styling |
 | Axios | HTTP Client |
+| Lucide Icons | UI Icons |
 
 ### Backend
 
@@ -103,7 +105,7 @@ To create a connected digital healthcare environment that makes everyday hospita
 | Java 21 | Programming Language |
 | Spring Boot | Backend Framework |
 | Spring Data JPA | Data Access |
-| Hibernate | Object-Relational Mapping |
+| Hibernate | Object-relational mapping |
 | Spring Security | Application Security |
 | JWT | Authentication |
 | REST APIs | Client-Server Communication |
@@ -127,38 +129,48 @@ To create a connected digital healthcare environment that makes everyday hospita
 
 ## 🏗️ System Architecture
 
-MediCare follows a layered full-stack architecture.
+MediCare follows a layered full-stack architecture that separates the frontend, backend business logic, data-access layer, and database.
 
 ```text
-             ┌──────────────────────────┐
-             │      React Frontend      │
-             │                          │
-             │   Admin | Doctor | Patient│
-             └────────────┬─────────────┘
-                          │
-                     Axios / HTTP
+             ┌─────────────────────────────┐
+             │       React Frontend       │
+             │                             │
+             │   Admin | Doctor | Patient  │
+             └──────────────┬──────────────┘
+                            │
+                       Axios / HTTP
                        REST APIs
-                          │
-                          ▼
-             ┌──────────────────────────┐
-             │    Spring Boot Backend  │
-             │                          │
-             │       Controllers        │
-             │         Services         │
-             │       Repositories       │
-             │    Spring Security + JWT │
-             └────────────┬─────────────┘
-                          │
-                    Spring Data JPA
-                       Hibernate
-                          │
-                          ▼
-             ┌──────────────────────────┐
-             │       PostgreSQL 18      │
-             │                          │
-             │       medicare_db        │
-             └──────────────────────────┘
+                            │
+                            ▼
+             ┌─────────────────────────────┐
+             │    Spring Boot Backend     │
+             │                             │
+             │       Controllers          │
+             │         Services           │
+             │       Repositories         │
+             │    Spring Security + JWT   │
+             └──────────────┬──────────────┘
+                            │
+                     Spring Data JPA
+                        Hibernate
+                            │
+                            ▼
+             ┌─────────────────────────────┐
+             │       PostgreSQL 18        │
+             │                             │
+             │       medicare_db           │
+             └─────────────────────────────┘
 ```
+
+### Architecture Flow
+
+1. The user interacts with the React frontend.
+2. The frontend sends HTTP requests using Axios.
+3. Spring Boot Controllers receive API requests.
+4. Services handle application business logic.
+5. Repositories interact with the database using Spring Data JPA and Hibernate.
+6. PostgreSQL stores and retrieves application data.
+7. The backend returns a response to the frontend.
 
 ---
 
@@ -216,6 +228,8 @@ Install the following before running MediCare:
 git clone https://github.com/patilyogeshofficial/MediCare.git
 ```
 
+Navigate to the project:
+
 ```bash
 cd MediCare
 ```
@@ -230,7 +244,7 @@ CREATE DATABASE medicare_db;
 
 Configure the required database credentials and application secrets through environment variables:
 
-```text
+```env
 DB_USERNAME
 DB_PASSWORD
 JWT_SECRET
@@ -238,7 +252,7 @@ MAIL_USERNAME
 MAIL_PASSWORD
 ```
 
-Never commit actual passwords, JWT secrets, or email credentials to GitHub.
+> Never commit actual passwords, JWT secrets, or email credentials to GitHub.
 
 ### 3. Run the Backend
 
@@ -262,7 +276,7 @@ http://localhost:8080
 
 ### 4. Run the Frontend
 
-Open another terminal:
+Open another terminal and navigate to the frontend directory:
 
 ```bash
 cd frontend
@@ -300,6 +314,7 @@ Available API areas include:
 
 - Authentication
 - Admin Dashboard
+- Admin Analytics
 - Patient Records
 - Doctor Directory
 - Appointments
@@ -308,20 +323,21 @@ Available API areas include:
 - Admin Settings
 - Medical History
 - Password Reset
+- Prescription Services
 
-API requests can be explored and tested using Postman.
+API requests can be explored using Postman.
 
 ---
 
-## 📊 Development Progress
+## 📊 Development Status
 
-MediCare is actively under development.
+MediCare has completed its planned implementation phase. The project includes frontend, backend, database integration, and major application modules.
 
-| Module | Current Status |
+| Module | Status |
 |---|---|
-| React Frontend | In Progress |
-| Spring Boot Backend | In Progress |
-| Database Integration | In Progress |
+| React Frontend | Implemented |
+| Spring Boot Backend | Implemented |
+| Database Integration | Implemented |
 | Authentication & Authorization | Implemented |
 | Admin Dashboard | Implemented |
 | Admin Appointments | Implemented |
@@ -329,25 +345,28 @@ MediCare is actively under development.
 | Admin Doctors | Implemented |
 | Admin Contact Messages | Implemented |
 | Admin Notifications | Implemented |
-| Admin Settings | In Progress |
-| Doctor Portal | In Progress |
-| Patient Portal | In Progress |
-| End-to-End Testing | Pending |
+| Admin Analytics & Reports | Implemented |
+| Doctor Portal | Implemented |
+| Patient Portal | Implemented |
+| V2.0 Implementation Modules | Completed |
 
-*The progress table will be updated as development continues.*
+> Implementation completion does not imply that all functionality has undergone final testing, security auditing, or production verification.
 
 ---
 
-## 🚀 Future Enhancements
+## 🚀 Future Work
 
-- Complete Admin Settings and Hospital Configuration
-- Complete Doctor Portal Integration
-- Complete Patient Portal Integration
-- Prescription Workflow
-- Revenue Analytics and Reporting
-- Advanced Dashboard Insights
-- Comprehensive End-to-End Testing
-- Cloud Deployment
+The next phase of MediCare focuses on validation, quality, and further improvements:
+
+- Comprehensive application testing
+- End-to-end workflow verification
+- Security and authorization review
+- API validation
+- Performance optimization
+- UI/UX refinements
+- Accessibility improvements
+- Additional analytics and reporting improvements
+- Further healthcare workflow enhancements
 
 ---
 
@@ -358,8 +377,10 @@ MediCare is actively under development.
 - Implement database operations using Hibernate and PostgreSQL.
 - Create responsive interfaces using React.js.
 - Implement secure authentication and role-based authorization.
+- Understand full-stack application architecture.
 - Follow layered architecture and clean coding practices.
 - Maintain source code using Git and GitHub.
+- Develop a real-world application integrating frontend, backend, database, and security.
 
 ---
 
@@ -367,7 +388,7 @@ MediCare is actively under development.
 
 **Yogesh Patil**
 
-Computer Engineering Graduate | Java Full Stack Developer
+Computer Engineering | Java Full Stack Developer
 
 - GitHub: [@patilyogeshofficial](https://github.com/patilyogeshofficial)
 - Project Repository: [MediCare](https://github.com/patilyogeshofficial/MediCare)
